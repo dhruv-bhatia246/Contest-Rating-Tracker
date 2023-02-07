@@ -1,34 +1,24 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react'
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native'
 import { Avatar } from "@rneui/base";
 import { AntDesign, SimpleLineIcons } from "@expo/vector-icons";
 import { LineChart, BarChart, PieChart, ProgressChart, ContributionGraph, StackedBarChart } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
+import DialogInput from 'react-native-dialog-input';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const screenWidth = Dimensions.get("window").width;
 
 export const LeetcodeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState();
   const [lcData, setLcData] = useState();
-  const [refreshing, setRefreshing] = React.useState(false);
-  var contestRatings = [];
-  var quesStats = [];
-  var allQuesStats = [];
-  var percData = [];
-
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
-  }, []);
-
-  useEffect(() => {
-    // Just some constants
-    const LEETCODE_API_ENDPOINT = 'https://leetcode.com/graphql'
-    const QUERY = `
+  const [refreshing, setRefreshing] = useState(false);
+  const [username, setUserName] = useState();
+  const [showDialog, setShowDialog] = useState(false);
+  const LEETCODE_API_ENDPOINT = 'https://leetcode.com/graphql'
+  const QUERY = `
     query {     
-      userContestRanking(username:  "_dhruvbhatia_") 
+      userContestRanking(username:  "${username}") 
       {
         attendedContestsCount
         rating
@@ -36,7 +26,7 @@ export const LeetcodeScreen = ({ navigation }) => {
         totalParticipants
         topPercentage    
       }
-      userContestRankingHistory(username: "_dhruvbhatia_")
+      userContestRankingHistory(username: "${username}")
       {
         attended
         trendDirection
@@ -51,7 +41,7 @@ export const LeetcodeScreen = ({ navigation }) => {
           startTime
         }
       }
-      matchedUser(username: "_dhruvbhatia_") {
+      matchedUser(username: "${username}") {
         username
         submitStats: submitStatsGlobal {
           acSubmissionNum {
@@ -70,20 +60,66 @@ export const LeetcodeScreen = ({ navigation }) => {
         count
       }
     }`
-    const init = {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: QUERY }),
+  const init = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: QUERY }),
+  }
+  var contestRatings = [];
+  var quesStats = [];
+  var allQuesStats = [];
+  var percData = [];
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      if (username !== undefined) {
+        fetch(LEETCODE_API_ENDPOINT, init)
+          .then(res => res.json())
+          .then((response) => {
+            if (response?.data.matchedUser !== null) {
+              setLcData(response?.data)
+              setLoading(false)
+            } else {
+              Alert.alert('Error', 'Enter Valid Username')
+              setShowDialog(true);
+            }
+          })
+          .catch((error) => setError(error))
+      }
+    } catch (e) {
+      setError(e);
+    }
+  }
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      try {
+        const value = await AsyncStorage.getItem('lcusername')
+        if (value !== null) {
+          setUserName(value);
+        } else {
+          setShowDialog(true);
+        }
+      } catch (e) {
+        setError(e);
+      }
     }
 
-    fetch(LEETCODE_API_ENDPOINT, init)
-      .then(res => res.json())
-      .then((response) => {
-        setLcData(response?.data)
-        setLoading(false)
-      })
-      .catch((error) => setError(error));
+    fetchUserName().then(() => {
+      if (username !== undefined) fetchData()
+    });
   }, [])
+
+  useEffect(() => {
+    if (username !== undefined) fetchData()
+  }, [username]);
 
   function ProgressRing() {
     const data = {
@@ -125,7 +161,8 @@ export const LeetcodeScreen = ({ navigation }) => {
       return <ActivityIndicator size="large" />
     }
     if (error) {
-      return <Text>{error}</Text>
+      Alert.alert('Error', error);
+      return <View></View>
     }
     for (let i = 0; i < lcData?.userContestRankingHistory?.length; i++) {
       // console.log(lcData?.userContestRankingHistory[i].rating);
@@ -147,7 +184,7 @@ export const LeetcodeScreen = ({ navigation }) => {
       }
     }
     return <View style={{ marginTop: 40 }}>
-      <View style={styles.outer}><Text style={styles.text}>_dhruvbhatia_</Text></View>
+      <View style={styles.outer}><Text style={styles.text}>{username}</Text></View>
       <View style={styles.outer}><Text style={styles.text}>Rating: {Math.round(contestRatings[contestRatings.length - 1])}</Text></View>
       <View style={styles.outer}><Text style={styles.text}>Top: {lcData?.userContestRanking?.topPercentage}%</Text></View>
       <LineChart
@@ -162,20 +199,7 @@ export const LeetcodeScreen = ({ navigation }) => {
           marginLeft: -15,
         }}
       />
-
-      {/* <ProgressChart
-        data={data}
-        width={screenWidth - 20}
-        height={250}
-        strokeWidth={19}
-        radius={32}
-        chartConfig={chartConfig}
-        hideLegend={false}
-        style={{
-          marginTop: -20,
-          marginLeft: -25,
-        }}
-      /> */}
+      {ProgressRing()}
     </View>
   }
 
@@ -211,12 +235,24 @@ export const LeetcodeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={{ height: "100%" }} refreshControl={
+      {showDialog && <DialogInput isDialogVisible={showDialog}
+        title={"Enter LeetCode Username"}
+        hintInput={"Type Here"}
+        submitInput={async (inputText) => {
+          await setUserName(inputText)
+          AsyncStorage.setItem('lcusername', inputText)
+          setShowDialog(false);
+        }}
+        closeDialog={() => {
+          if (username !== undefined) setShowDialog(false)
+          else Alert.alert('Username Required', 'Please enter a valid username!');
+        }}>
+      </DialogInput>}
+      {loading ? getData() : <ScrollView style={{ height: "100%" }} refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }>
         {getData()}
-        {ProgressRing()}
-      </ScrollView>
+      </ScrollView>}
     </SafeAreaView>
   )
 }

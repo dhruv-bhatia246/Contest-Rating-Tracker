@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { View, Text, Button, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LeetcodeScreen } from './LeetcodeScreen';
 import { CodeforcesScreen } from './CodeforcesScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function SettingsScreen() {
   return (
@@ -17,21 +18,11 @@ function SettingsScreen() {
 export default function MainScreen() {
   const Tab = createMaterialTopTabNavigator();
   const insets = useSafeAreaInsets();
-  const [lcUserName, setLcUserName] = useState();
-  const [cfUserName, setCfUserName] = useState();
-
-  useEffect(() => {
-    if (localStorage.getItem("lcUserName"))
-      setLcUserName(localStorage.getItem("lcUserName"));
-
-    if (localStorage.getItem("lcUserName"))
-      setCfUserName(localStorage.getItem("cfUserName"));
-  }, [])
 
   return (
     <NavigationContainer>
       <Tab.Navigator
-        initialRouteName="Codeforces"
+        initialRouteName="LeetCode"
         screenOptions={{
           "tabBarLabelStyle": {
             "color": "white",
@@ -44,8 +35,8 @@ export default function MainScreen() {
           }
         }}
       >
-        <Tab.Screen name="Codeforces" component={CodeforcesScreen} />
         <Tab.Screen name="LeetCode" component={LeetcodeScreen} />
+        <Tab.Screen name="Codeforces" component={CodeforcesScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );

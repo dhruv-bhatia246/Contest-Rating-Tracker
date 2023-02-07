@@ -1,9 +1,11 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react'
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native'
 import { Avatar } from "@rneui/base";
 import { AntDesign, SimpleLineIcons } from "@expo/vector-icons";
 import { LineChart, BarChart, PieChart, ProgressChart, ContributionGraph, StackedBarChart } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
+import DialogInput from 'react-native-dialog-input';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const screenWidth = Dimensions.get("window").width;
 
 export const CodeforcesScreen = ({ navigation }) => {
@@ -12,6 +14,8 @@ export const CodeforcesScreen = ({ navigation }) => {
   const [error, setError] = useState();
   const [cfData, setCfData] = useState();
   const [history, setHistory] = useState();
+  const [username, setusername] = useState();
+  const [showDialog, setShowDialog] = useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   var ratings = [];
 
@@ -22,8 +26,8 @@ export const CodeforcesScreen = ({ navigation }) => {
     }, 2000);
   }, []);
 
-  useEffect(() => {
-    fetch("https://codeforces.com/api/user.info?handles=dhruv.bhatia")
+  const fetchData = () => {
+    fetch(`https://codeforces.com/api/user.info?handles=${username}`)
       .then(res => res.json())
       .then((response) => {
         // console.log(JSON.stringify(response.result[0]))
@@ -32,7 +36,7 @@ export const CodeforcesScreen = ({ navigation }) => {
       })
       .catch((error) => setError(error));
 
-    fetch("https://codeforces.com/api/user.rating?handle=dhruv.bhatia")
+    fetch(`https://codeforces.com/api/user.rating?handle=${username}`)
       .then(res => res.json())
       .then((response) => {
         // console.log(JSON.stringify(response))
@@ -40,14 +44,39 @@ export const CodeforcesScreen = ({ navigation }) => {
         setLoading2(false)
       })
       .catch((error) => setError(error));
+  }
+
+  useEffect(() => {
+    const fetchusername = async () => {
+      try {
+        const value = await AsyncStorage.getItem('cfusername')
+        if (value !== null) {
+          setusername(value);
+        } else {
+          setShowDialog(true);
+        }
+      } catch (e) {
+        setError(e);
+      }
+    }
+
+    fetchusername().then(() => {
+      if (username !== undefined) fetchData()
+    });
   }, [])
+
+  useEffect(() => {
+    if (username !== undefined) fetchData()
+  }, [username]);
 
   const getData = () => {
     if (loading || loading2) {
       return <ActivityIndicator size="large" />
     }
+
     if (error) {
-      return <Text>{error}</Text>
+      Alert.alert('Error', error);
+      return <View></View>
     }
 
     for (let i = 0; i < history?.length; i++) {
@@ -110,11 +139,24 @@ export const CodeforcesScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={{ height: "100%" }} refreshControl={
+      {showDialog && <DialogInput isDialogVisible={showDialog}
+        title={"Enter Codeforces username"}
+        hintInput={"Type Here"}
+        submitInput={async (inputText) => {
+          await setusername(inputText)
+          AsyncStorage.setItem('cfusername', inputText)
+          setShowDialog(false);
+        }}
+        closeDialog={() => {
+          if (username !== undefined) setShowDialog(false)
+          else Alert.alert('Username Required', 'Please enter a valid username!');
+        }}>
+      </DialogInput>}
+      {loading || loading2 ? getData() : <ScrollView style={{ height: "100%" }} refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }>
         {getData()}
-      </ScrollView>
+      </ScrollView>}
     </SafeAreaView>
   )
 }
