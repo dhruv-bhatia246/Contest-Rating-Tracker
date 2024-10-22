@@ -1,24 +1,25 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react'
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native'
 import { Avatar } from "@rneui/base";
-import { AntDesign, SimpleLineIcons } from "@expo/vector-icons";
+import { AntDesign, SimpleLineIcons, FontAwesome } from "@expo/vector-icons";
 import { LineChart, BarChart, PieChart, ProgressChart, ContributionGraph, StackedBarChart } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import DialogInput from 'react-native-dialog-input';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 const screenWidth = Dimensions.get("window").width;
 
-export const LeetcodeScreen = ({ navigation }) => {
+export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
+  const isFocused = useIsFocused();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState();
   const [lcData, setLcData] = useState();
   const [refreshing, setRefreshing] = useState(false);
-  const [username, setUserName] = useState();
   const [showDialog, setShowDialog] = useState(false);
   const LEETCODE_API_ENDPOINT = 'https://leetcode.com/graphql'
   const QUERY = `
     query {     
-      userContestRanking(username:  "${username}") 
+      userContestRanking(username:  "${lcusername}") 
       {
         attendedContestsCount
         rating
@@ -26,7 +27,7 @@ export const LeetcodeScreen = ({ navigation }) => {
         totalParticipants
         topPercentage    
       }
-      userContestRankingHistory(username: "${username}")
+      userContestRankingHistory(username: "${lcusername}")
       {
         attended
         trendDirection
@@ -41,7 +42,7 @@ export const LeetcodeScreen = ({ navigation }) => {
           startTime
         }
       }
-      matchedUser(username: "${username}") {
+      matchedUser(username: "${lcusername}") {
         username
         submitStats: submitStatsGlobal {
           acSubmissionNum {
@@ -53,6 +54,10 @@ export const LeetcodeScreen = ({ navigation }) => {
         problemsSolvedBeatsStats{
           difficulty
           percentage
+        }
+        profile{
+          ranking
+          userAvatar
         }
       }
       allQuestionsCount{
@@ -72,20 +77,20 @@ export const LeetcodeScreen = ({ navigation }) => {
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
+    setLoading(true);
+    fetchData();
   }, []);
 
   const fetchData = async () => {
     try {
-      if (username !== undefined) {
+      if (lcusername !== undefined) {
         fetch(LEETCODE_API_ENDPOINT, init)
           .then(res => res.json())
           .then((response) => {
             if (response?.data.matchedUser !== null) {
               setLcData(response?.data)
               setLoading(false)
+              setRefreshing(false);
             } else {
               Alert.alert('Error', 'Enter Valid Username')
               setShowDialog(true);
@@ -98,28 +103,32 @@ export const LeetcodeScreen = ({ navigation }) => {
     }
   }
 
-  useEffect(() => {
-    const fetchUserName = async () => {
-      try {
-        const value = await AsyncStorage.getItem('lcusername')
-        if (value !== null) {
-          setUserName(value);
-        } else {
-          setShowDialog(true);
-        }
-      } catch (e) {
-        setError(e);
+  const fetchUserName = async () => {
+    try {
+      const value = await AsyncStorage.getItem('lcusername')
+      if (value !== null) {
+        await setLcUsername(value);
+      } else {
+        setShowDialog(true);
       }
+    } catch (e) {
+      setError(e);
     }
-
-    fetchUserName().then(() => {
-      if (username !== undefined) fetchData()
-    });
-  }, [])
+  }
 
   useEffect(() => {
-    if (username !== undefined) fetchData()
-  }, [username]);
+    fetchUserName().then(() => {
+      if (lcusername !== undefined) fetchData()
+    });
+  }, [lcusername])
+
+  useEffect(() => {
+    if (!loading) {
+      fetchUserName().then(() => {
+        if (lcusername !== undefined) fetchData()
+      });
+    }
+  }, [isFocused])
 
   function ProgressRing() {
     const data = {
@@ -135,7 +144,7 @@ export const LeetcodeScreen = ({ navigation }) => {
       <View>
         <ProgressChart
           data={data}
-          width={Dimensions.get("window").width - 10}
+          width={Dimensions.get("window").width}
           height={170}
           strokeWidth={12}
           hasLegend={true}
@@ -144,13 +153,13 @@ export const LeetcodeScreen = ({ navigation }) => {
           chartConfig={{
             backgroundGradientFromOpacity: 0.5,
             backgroundGradientToOpacity: 1,
-            backgroundColor: "#1b1b21",
-            backgroundGradientFrom: "#1b1b21",
-            backgroundGradientTo: "#1b1b21",
+            backgroundColor: "#1D1C21",
+            backgroundGradientFrom: "#1D1C21",
+            backgroundGradientTo: "#1D1C21",
             decimalPlaces: 2,
             color: (opacity = 1, _index) => `rgba(255,255,255,${opacity})`,
           }}
-          style={{ marginVertical: 8, borderRadius: 10, marginLeft: -60 }}
+          style={{ marginVertical: 15, borderRadius: 10, marginLeft: -80 }}
         />
       </View>
     );
@@ -165,7 +174,6 @@ export const LeetcodeScreen = ({ navigation }) => {
       return <View></View>
     }
     for (let i = 0; i < lcData?.userContestRankingHistory?.length; i++) {
-      // console.log(lcData?.userContestRankingHistory[i].rating);
       if (lcData?.userContestRankingHistory[i]?.attended === true) {
         contestRatings.push(lcData?.userContestRankingHistory[i].rating);
       }
@@ -183,23 +191,25 @@ export const LeetcodeScreen = ({ navigation }) => {
         percData.push(quesStats[0] / allQuesStats[0]);
       }
     }
-    return <View style={{ marginTop: 40 }}>
-      <View style={styles.outer}><Text style={styles.text}>{username}</Text></View>
-      <View style={styles.outer}><Text style={styles.text}>Rating: {Math.round(contestRatings[contestRatings.length - 1])}</Text></View>
-      <View style={styles.outer}><Text style={styles.text}>Top: {lcData?.userContestRanking?.topPercentage}%</Text></View>
-      <LineChart
+    return <View style={{ marginTop: 30, marginBottom: 80, alignItems: 'center' }}>
+      <View style={{ marginBottom: 10, borderColor: 'orange', borderWidth: 3, borderRadius: 60, padding: 5 }}><Avatar size="large" rounded source={{ uri: lcData?.matchedUser.profile.userAvatar }}></Avatar></View>
+      {lcData?.matchedUser.username ? <View><Text style={{ color: 'white', fontWeight: "400", fontSize: 30, marginTop: 20 }}>Hello {lcData?.matchedUser.username}!</Text></View> : null}
+      <View><Text style={{ color: 'white', fontWeight: "400", marginBottom: 20, fontSize: 20 }}>Welcome Back!</Text></View>
+      {contestRatings[contestRatings.length - 1] ? <View style={{ ...styles.outer, backgroundColor: "#E6DFF1", shadowColor: '#E6DFF1', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Rating: {Math.round(contestRatings[contestRatings.length - 1])}</Text></View> : null}
+      {lcData?.matchedUser.profile.ranking ? <View style={{ ...styles.outer, backgroundColor: "#F1DFDE", shadowColor: '#F1DFDE', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Rank: {lcData?.matchedUser.profile.ranking}</Text></View> : null}
+      {lcData?.userContestRanking?.topPercentage ? <View style={{ ...styles.outer, backgroundColor: '#C0DEDD', shadowColor: '#C0DEDD', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Top: {lcData?.userContestRanking?.topPercentage}%</Text></View> : null}
+      <View>{ProgressRing()}</View>
+      {lcData?.userContestRanking?.topPercentage ? <View style={{ borderWidth: 0, marginTop: 0, borderRadius: 25, backgroundColor: '#b8ecf2', shadowColor: '#b8ecf2', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 5, marginBottom: 20 }}><LineChart
         data={{ datasets: [{ data: contestRatings }] }}
         width={screenWidth - 20}
-        height={250}
+        height={200}
         chartConfig={chartConfig}
         bezier
         style={{
-          marginTop: 20,
-          borderRadius: 12,
-          marginLeft: -15,
+          borderRadius: 25,
+          paddingTop: 20
         }}
-      />
-      {ProgressRing()}
+      /></View> : null}
     </View>
   }
 
@@ -210,23 +220,20 @@ export const LeetcodeScreen = ({ navigation }) => {
   };
 
   const chartConfig = {
-    backgroundColor: "#1b1b21",
-    backgroundGradientFrom: "#1b1b21",
-    backgroundGradientTo: "#1b1b21",
-    fillShadowGradientFromOpacity: "0.3",
-    fillShadowGradientFromOffset: "0.1",
+    backgroundColor: "#b8ecf2",
+    backgroundGradientFrom: "#b8ecf2",
+    backgroundGradientTo: "#b8ecf2",
+    fillShadowGradientFromOpacity: "0.5",
+    fillShadowGradientFromOffset: "0.5",
     fillShadowGradientFrom: "#3df53d",
     fillShadowGradientTo: "#3df53d",
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    style: {
-      borderRadius: 16
-    },
+    color: (opacity = 1) => `pink`,
+    labelColor: (opacity = 1) => `black`,
     propsForDots: {
-      r: "2",
+      r: "3",
       strokeWidth: "2",
-      stroke: "#f5e320"
+      stroke: "#e86500"
     },
     propsForBackgroundLines: {
       strokeDasharray: '',
@@ -239,16 +246,16 @@ export const LeetcodeScreen = ({ navigation }) => {
         title={"Enter LeetCode Username"}
         hintInput={"Type Here"}
         submitInput={async (inputText) => {
-          await setUserName(inputText)
-          AsyncStorage.setItem('lcusername', inputText)
-          setShowDialog(false);
+          await setShowDialog(false);
+          await AsyncStorage.setItem('lcusername', inputText)
+          await setLcUsername(inputText)
         }}
         closeDialog={() => {
-          if (username !== undefined) setShowDialog(false)
+          if (lcusername !== undefined) setShowDialog(false)
           else Alert.alert('Username Required', 'Please enter a valid username!');
         }}>
       </DialogInput>}
-      {loading ? getData() : <ScrollView style={{ height: "100%" }} refreshControl={
+      {loading ? getData() : <ScrollView showsHorizontalScrollIndicator="false" style={{ height: "100%" }} refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }>
         {getData()}
@@ -263,7 +270,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1b1b21'
+    backgroundColor: '#1D1C21'
   },
   text: {
     color: 'white',
@@ -273,12 +280,15 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   outer: {
-    backgroundColor: "#373742",
     borderRadius: 10,
-    margin: 10,
+    margin: 8,
     shadowColor: "#008efa",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.6,
-    shadowRadius: 2
+    shadowRadius: 2,
+    width: screenWidth - 150,
+    height: 45,
+    display: 'flex',
+    justifyContent: 'space-between'
   }
 })
