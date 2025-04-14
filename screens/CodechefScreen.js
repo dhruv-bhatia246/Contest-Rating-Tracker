@@ -72,7 +72,7 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
         return;
       }
 
-      console.log(`Fetching CodeChef data for username: ${ccusername}`);
+      // console.log(`Fetching CodeChef data for username: ${ccusername}`);
       
       const response = await fetch(`https://codechef-api.vercel.app/handle/${ccusername}`);
       
@@ -82,7 +82,7 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
       }
       
       const data = await response.json();
-      console.log('CodeChef API response:', data);
+      // console.log('CodeChef API response:', data);
       
       if (data.success) {
         const transformedData = {
@@ -257,9 +257,21 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
         </View>
         {ccusername ? <View><Text style={{ color: 'white', fontWeight: "400", fontSize: 30, marginTop: 20 }}>Hello {ccusername}</Text></View> : null}
         <View><Text style={{ color: 'white', fontWeight: "400", marginBottom: 20, fontSize: 20 }}>Welcome Back!</Text></View>
-        {ccData?.currentRating ? <View style={{ ...styles.outer, backgroundColor: '#E6DFF1', shadowColor: '#E6DFF1', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Rating: {ccData.currentRating}</Text></View> : null}
-        {ccData?.stars ? <View style={{ ...styles.outer, backgroundColor: '#E6DFF1', shadowColor: '#E6DFF1', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Stars: {ccData.stars}</Text></View> : null}
-        {ccData?.rank ? <View style={{ ...styles.outer, backgroundColor: '#F1DFDE', shadowColor: '#F1DFDE', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Rank: {ccData.rank}</Text></View> : null}
+        {ccData?.currentRating ? 
+          <View style={styles.statsBox}>
+            <Text style={styles.statText}>Rating: {ccData.currentRating}</Text>
+          </View> 
+        : null}
+        {ccData?.stars ? 
+          <View style={styles.statsBox}>
+            <Text style={styles.statText}>Stars: {ccData.stars}</Text>
+          </View> 
+        : null}
+        {ccData?.rank ? 
+          <View style={styles.statsBox}>
+            <Text style={styles.statText}>Rank: {ccData.rank}</Text>
+          </View> 
+        : null}
         {ratingHistory.length > 0 ? 
           <View style={styles.chartContainer}>
             <Text style={styles.chartTitle}>Rating History</Text>
@@ -268,6 +280,27 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
               width={screenWidth - 40}
               height={220}
               padding={{ top: 10, bottom: 40, left: 50, right: 20 }}
+              containerComponent={
+                <VictoryZoomVoronoiContainer
+                  labels={({ datum }) => {
+                    const contest = ratingHistory[datum.x - 1];
+                    return `${contest.contestName}\nRating: ${Math.round(datum.y)}`;
+                  }}
+                  zoomDimension="x"
+                  minimumZoom={{ x: 1, y: 1 }}
+                  downsample={10}
+                  labelComponent={
+                    <VictoryTooltip
+                      flyoutStyle={{
+                        stroke: "#FF3C32",
+                        fill: "rgba(255, 60, 50, 0.9)",
+                      }}
+                      style={{ fill: "white" }}
+                      flyoutPadding={8}
+                    />
+                  }
+                />
+              }
               domainPadding={{ y: 20 }}
             >
               <VictoryAxis
@@ -292,7 +325,7 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
                 }))}
                 style={{
                   data: { 
-                    stroke: "#10B981",
+                    stroke: "#FF3C32",
                     strokeWidth: 2,
                   }
                 }}
@@ -300,14 +333,13 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
               <VictoryScatter
                 data={ratingHistory.map((item, index) => ({
                   x: index + 1,
-                  y: item.rating,
-                  color: item.color
+                  y: item.rating
                 }))}
                 size={4}
                 style={{
                   data: {
                     fill: "#1A1B1E",
-                    stroke: ({ datum }) => datum.color,
+                    stroke: "#FF3C32",
                     strokeWidth: 2
                   }
                 }}
@@ -369,35 +401,67 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#1A1B1E',
   },
-  text: {
-    color: '#fff',
-    textAlign: "center",
-    fontWeight: "500",
-    paddingVertical: 10,
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+  },
+  contentContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  profileContainer: {
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
+  },
+  avatarContainer: {
+    marginBottom: 10,
+    borderColor: '#FF3C32',
+    borderWidth: 3,
+    borderRadius: 60,
+    padding: 5,
+  },
+  username: {
+    color: 'white',
+    fontWeight: "400",
+    fontSize: 30,
+    marginTop: 20,
+  },
+  welcomeText: {
+    color: 'white',
+    fontWeight: "400",
+    marginBottom: 20,
     fontSize: 20,
   },
-  outer: {
-    borderRadius: 16,
-    margin: 8,
-    padding: 16,
+  statsBox: {
     backgroundColor: '#2A2B2F',
-    shadowColor: "#10B981",
+    borderRadius: 16,
+    padding: 16,
+    margin: 8,
+    width: screenWidth - 40,
+    shadowColor: "#FF3C32",
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 6,
-    width: screenWidth - 40,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 60, 50, 0.3)',
+  },
+  statText: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: "500",
+    textAlign: 'center',
   },
   chartContainer: {
-    backgroundColor: '#1A1B1E',
+    backgroundColor: '#2A2B2F',
     borderRadius: 16,
     padding: 16,
     margin: 8,
-    shadowColor: "#10B981",
+    shadowColor: "#FF3C32",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -405,7 +469,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: screenWidth - 32,
     alignItems: 'center',
-    overflow: 'hidden'
   },
   chartTitle: {
     color: '#fff',
@@ -434,12 +497,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: '#FF3C32',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  text: {
+    color: '#fff',
+    textAlign: "center",
+    fontWeight: "500",
+    paddingVertical: 10,
+    fontSize: 20,
+  },
+  outer: {
+    borderRadius: 16,
+    margin: 8,
+    padding: 16,
+    backgroundColor: '#2A2B2F',
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 6,
+    width: screenWidth - 40,
+  },
   scrollView: {
     width: '100%',
-  },
-  scrollContent: {
-    alignItems: 'center',
-    width: '100%',
-    paddingBottom: 20,
   },
 })

@@ -5,9 +5,12 @@ import { useIsFocused } from "@react-navigation/native";
 import userIcon from '../assets/user.png';
 import DialogInput from 'react-native-dialog-input';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { VictoryLine, VictoryChart, VictoryAxis, VictoryTheme, VictoryScatter } from 'victory-native';
+import { VictoryLine, VictoryChart, VictoryAxis, VictoryTheme, VictoryScatter, VictoryTooltip, VictoryVoronoiContainer, VictoryZoomContainer, createContainer } from 'victory-native';
 
 const screenWidth = Dimensions.get("window").width;
+
+// Create a combined container for both zoom and tooltip functionality
+const VictoryZoomVoronoiContainer = createContainer("zoom", "voronoi");
 
 export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
   const isFocused = useIsFocused();
@@ -185,6 +188,27 @@ export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
               width={screenWidth - 40}
               height={220}
               padding={{ top: 10, bottom: 40, left: 50, right: 20 }}
+              containerComponent={
+                <VictoryZoomVoronoiContainer
+                  labels={({ datum }) => {
+                    const contest = ratingHistory[datum.x - 1];
+                    return `Contest #${datum.x}\nRating: ${Math.round(datum.y)}\nRank: ${contest.rank || 'N/A'}`;
+                  }}
+                  zoomDimension="x"
+                  minimumZoom={{ x: 1, y: 1 }}
+                  downsample={10}
+                  labelComponent={
+                    <VictoryTooltip
+                      flyoutStyle={{
+                        stroke: "#FF3C32",
+                        fill: "rgba(255, 60, 50, 0.9)",
+                      }}
+                      style={{ fill: "white" }}
+                      flyoutPadding={8}
+                    />
+                  }
+                />
+              }
               domainPadding={{ y: 20 }}
             >
               <VictoryAxis
@@ -324,6 +348,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 60, 50, 0.3)',
   },
   statText: {
     color: 'white',
@@ -332,7 +358,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   chartContainer: {
-    backgroundColor: '#1A1B1E',
+    backgroundColor: '#2A2B2F',
     borderRadius: 16,
     padding: 16,
     margin: 8,

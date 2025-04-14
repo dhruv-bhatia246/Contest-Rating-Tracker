@@ -146,10 +146,11 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
       ],
     };
     return (
-      <View>
+      <View style={styles.chartContainer}>
+        <Text style={styles.chartTitle}>Problem Solving Progress</Text>
         <ProgressChart
           data={data}
-          width={Dimensions.get("window").width}
+          width={screenWidth - 40}
           height={170}
           strokeWidth={12}
           hasLegend={true}
@@ -158,13 +159,14 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
           chartConfig={{
             backgroundGradientFromOpacity: 0.5,
             backgroundGradientToOpacity: 1,
-            backgroundColor: "#1D1C21",
-            backgroundGradientFrom: "#1D1C21",
-            backgroundGradientTo: "#1D1C21",
+            backgroundColor: "#1A1B1E",
+            backgroundGradientFrom: "#1A1B1E",
+            backgroundGradientTo: "#1A1B1E",
             decimalPlaces: 2,
-            color: (opacity = 1, _index) => `rgba(255,255,255,${opacity})`,
+            color: (opacity = 1, _index) => `rgba(255, 60, 50, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
           }}
-          style={{ marginVertical: 15, borderRadius: 10, marginLeft: -80 }}
+          style={{ marginVertical: 15, borderRadius: 10 }}
         />
       </View>
     );
@@ -197,14 +199,26 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
       }
     }
     return <View style={{ marginTop: 30, marginBottom: 80, alignItems: 'center', width: '100%' }}>
-      <View style={{ marginBottom: 10, borderColor: 'orange', borderWidth: 3, borderRadius: 60, padding: 5 }}>
+      <View style={styles.avatarContainer}>
         <Avatar size="large" rounded source={lcData?.titlePhoto ? { uri: lcData?.matchedUser.profile.userAvatar } : userIcon} />
       </View>
-      {lcData?.matchedUser.username ? <View><Text style={{ color: 'white', fontWeight: "400", fontSize: 30, marginTop: 20 }}>Hello {lcData?.matchedUser.username}</Text></View> : null}
-      <View><Text style={{ color: 'white', fontWeight: "400", marginBottom: 20, fontSize: 20 }}>Welcome Back!</Text></View>
-      {contestRatings[contestRatings.length - 1] ? <View style={{ ...styles.outer, backgroundColor: "#E6DFF1", shadowColor: '#E6DFF1', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Rating: {Math.round(contestRatings[contestRatings.length - 1])}</Text></View> : null}
-      {lcData?.matchedUser.profile.ranking ? <View style={{ ...styles.outer, backgroundColor: "#F1DFDE", shadowColor: '#F1DFDE', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Rank: {lcData?.matchedUser.profile.ranking}</Text></View> : null}
-      {lcData?.userContestRanking?.topPercentage ? <View style={{ ...styles.outer, backgroundColor: '#C0DEDD', shadowColor: '#C0DEDD', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Top: {lcData?.userContestRanking?.topPercentage}%</Text></View> : null}
+      {lcData?.matchedUser.username ? <View><Text style={styles.username}>Hello {lcData?.matchedUser.username}</Text></View> : null}
+      <View><Text style={styles.welcomeText}>Welcome Back!</Text></View>
+      {contestRatings[contestRatings.length - 1] ? 
+        <View style={styles.statsBox}>
+          <Text style={styles.statText}>Rating: {Math.round(contestRatings[contestRatings.length - 1])}</Text>
+        </View> 
+      : null}
+      {lcData?.matchedUser.profile.ranking ? 
+        <View style={styles.statsBox}>
+          <Text style={styles.statText}>Rank: {lcData?.matchedUser.profile.ranking}</Text>
+        </View> 
+      : null}
+      {lcData?.userContestRanking?.topPercentage ? 
+        <View style={styles.statsBox}>
+          <Text style={styles.statText}>Top: {lcData?.userContestRanking?.topPercentage}%</Text>
+        </View> 
+      : null}
       <View>{ProgressRing()}</View>
       {lcData?.userContestRanking?.topPercentage ? 
         <View style={styles.chartContainer}>
@@ -223,8 +237,8 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
                 labelComponent={
                   <VictoryTooltip
                     flyoutStyle={{
-                      stroke: "#2563EB",
-                      fill: "rgba(37, 99, 235, 0.9)",
+                      stroke: "#FF3C32",
+                      fill: "rgba(255, 60, 50, 0.9)",
                     }}
                     style={{ fill: "white" }}
                     flyoutPadding={8}
@@ -256,7 +270,7 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
               }}
               style={{
                 data: { 
-                  stroke: "#2563EB",
+                  stroke: "#FF3C32",
                   strokeWidth: 2,
                 }
               }}
@@ -274,14 +288,13 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
               style={{
                 data: {
                   fill: "#1A1B1E",
-                  stroke: "#2563EB",
+                  stroke: "#FF3C32",
                   strokeWidth: 2
                 }
               }}
             />
           </VictoryChart>
           
-          {/* Optional: Add a legend or stats below the chart */}
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Highest</Text>
@@ -375,35 +388,67 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#1A1B1E',
   },
-  text: {
-    color: '#fff',
-    textAlign: "center",
-    fontWeight: "500",
-    paddingVertical: 10,
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+  },
+  contentContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  profileContainer: {
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
+  },
+  avatarContainer: {
+    marginBottom: 10,
+    borderColor: '#FF3C32',
+    borderWidth: 3,
+    borderRadius: 60,
+    padding: 5,
+  },
+  username: {
+    color: 'white',
+    fontWeight: "400",
+    fontSize: 30,
+    marginTop: 20,
+  },
+  welcomeText: {
+    color: 'white',
+    fontWeight: "400",
+    marginBottom: 20,
     fontSize: 20,
   },
-  outer: {
-    borderRadius: 16,
-    margin: 8,
-    padding: 16,
+  statsBox: {
     backgroundColor: '#2A2B2F',
-    shadowColor: "#2563EB",
+    borderRadius: 16,
+    padding: 16,
+    margin: 8,
+    width: screenWidth - 40,
+    shadowColor: "#FF3C32",
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 6,
-    width: screenWidth - 40,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 60, 50, 0.3)',
+  },
+  statText: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: "500",
+    textAlign: 'center',
   },
   chartContainer: {
-    backgroundColor: '#1A1B1E',
+    backgroundColor: '#2A2B2F',
     borderRadius: 16,
     padding: 16,
     margin: 8,
-    shadowColor: "#2563EB",
+    shadowColor: "#FF3C32",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -411,7 +456,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: screenWidth - 32,
     alignItems: 'center',
-    overflow: 'hidden'
   },
   chartTitle: {
     color: '#fff',
@@ -439,5 +483,16 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: '#FF3C32',
+    fontSize: 16,
+    textAlign: 'center',
   },
 })
