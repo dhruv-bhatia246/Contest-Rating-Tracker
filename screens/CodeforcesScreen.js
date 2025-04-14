@@ -1,200 +1,386 @@
-import React, { useEffect, useLayoutEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Dimensions, View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native'
 import { Avatar } from "@rneui/base";
-import { AntDesign, SimpleLineIcons } from "@expo/vector-icons";
-import { LineChart, BarChart, PieChart, ProgressChart, ContributionGraph, StackedBarChart } from "react-native-chart-kit";
 import { useIsFocused } from "@react-navigation/native";
+import userIcon from '../assets/user.png';
 import DialogInput from 'react-native-dialog-input';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { VictoryLine, VictoryChart, VictoryAxis, VictoryTheme, VictoryScatter } from 'victory-native';
+
 const screenWidth = Dimensions.get("window").width;
 
 export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
   const isFocused = useIsFocused();
   const [loading, setLoading] = useState(true);
-  const [loading2, setLoading2] = useState(true);
-  const [error, setError] = useState();
-  const [cfData, setCfData] = useState();
-  const [history, setHistory] = useState();
+  const [error, setError] = useState(null);
+  const [cfData, setCfData] = useState(null);
   const [showDialog, setShowDialog] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  var ratings = [];
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    setLoading(true);
-    setLoading2(true);
-    fetchData();
+  // Initialize username from AsyncStorage if not provided
+  useEffect(() => {
+    const initUsername = async () => {
+      try {
+        const storedUsername = await AsyncStorage.getItem('cfusername');
+        if (storedUsername && !cfusername) {
+          setCfUsername(storedUsername);
+        } else if (!storedUsername && !cfusername) {
+          setShowDialog(true);
+        }
+      } catch (e) {
+        console.error('Error initializing username:', e);
+        setError(e.message);
+      }
+    };
+    initUsername();
   }, []);
 
-  const fetchData = () => {
-    fetch(`https://codeforces.com/api/user.info?handles=${cfusername}`)
-      .then(res => res.json())
-      .then((response) => {
-        if (response.comment === undefined) {
-          setCfData(response.result[0])
-          setLoading(false);
-          setRefreshing(false);
-        } else {
-          Alert.alert('Error', 'Enter Valid Username')
-          setShowDialog(true);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-        setError(error)
-      });
+  const onRefresh = React.useCallback(() => {
+    if (!cfusername) {
+      setShowDialog(true);
+      return;
+    }
+    setRefreshing(true);
+    fetchData();
+  }, [cfusername]);
 
-    fetch(`https://codeforces.com/api/user.rating?handle=${cfusername}`)
-      .then(res => res.json())
-      .then((response) => {
-        if (response.comment === undefined) {
-          setHistory(response.result)
-          setLoading2(false);
-          setRefreshing(false);
-        } else {
-          setShowDialog(true);
-        }
-      })
-      .catch((error) => setError(error));
-  }
-
-  const fetchusername = async () => {
-    try {
-      const value = await AsyncStorage.getItem('cfusername')
-      if (value !== null) {
-        setCfUsername(value);
-      } else {
-        setShowDialog(true);
+  useEffect(() => {
+    if (isFocused && cfusername) {
+      const now = Date.now();
+      if (now - lastFetchTime > CACHE_DURATION || refreshing) {
+        setLoading(true);
+        fetchData();
       }
+    }
+  }, [isFocused, refreshing, cfusername]);
+
+  const fetchData = async () => {
+    try {
+      if (!cfusername) {
+        console.log('No username provided');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const [userResponse, ratingResponse] = await Promise.all([
+        fetch(`https://codeforces.com/api/user.info?handles=${cfusername}`),
+        fetch(`https://codeforces.com/api/user.rating?handle=${cfusername}`)
+      ]);
+
+      const userData = await userResponse.json();
+      const ratingData = await ratingResponse.json();
+
+      if (userData.status === 'OK' && ratingData.status === 'OK') {
+        const user = userData.result[0];
+        const ratings = ratingData.result;
+
+        setCfData({
+          ...user,
+          ratingHistory: ratings
+        });
+        setLastFetchTime(Date.now());
+      } else {
+        throw new Error('Failed to fetch user data');
+      }
+    } catch (error) {
+      console.error('Codeforces API error:', error);
+      setError(error.message);
+      Alert.alert('Error', 'Could not fetch user data. Please check your username.', [
+        { 
+          text: 'OK', 
+          onPress: () => {
+            AsyncStorage.removeItem('cfusername');
+            setCfUsername(undefined);
+            navigation.navigate('Entry');
+          }
+        }
+      ]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleDialogSubmit = async (inputText) => {
+    try {
+      await AsyncStorage.setItem('cfusername', inputText);
+      setCfUsername(inputText);
+      setShowDialog(false);
     } catch (e) {
-      setError(e);
+      console.error('Error saving username:', e);
+      setError(e.message);
     }
-  }
+  };
 
-  useEffect(() => {
-    fetchusername().then(() => {
-      if (cfusername !== undefined) fetchData()
-    });
-  }, [cfusername])
-
-  useEffect(() => {
-    if (!loading) {
-      fetchusername().then(() => {
-        if (cfusername !== undefined) fetchData()
-      });
+  const handleDialogClose = () => {
+    if (cfusername) {
+      setShowDialog(false);
+    } else {
+      Alert.alert('Username Required', 'Please enter a valid username!');
     }
-  }, [isFocused])
+  };
 
   const getData = () => {
-    if (loading || loading2) {
-      return <ActivityIndicator size="large" />
+    if (loading && !refreshing) {
+      return <ActivityIndicator size="large" color="#3B82F6" />
     }
 
     if (error) {
-      Alert.alert('Error', error);
-      return <View></View>
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+        </View>
+      );
     }
 
-    for (let i = 0; i < history?.length; i++) {
-      ratings.push(history[i]?.newRating);
+    if (!cfData) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            No data available. Please check your username and try again.
+          </Text>
+        </View>
+      );
     }
 
-    return <View style={{ marginTop: 30, marginBottom: 30, alignItems: "center", flex: 1, justifyContent: "center" }}>
-      <View style={{ marginBottom: 10, borderColor: 'orange', borderWidth: 3, borderRadius: 60, padding: 5 }}><Avatar size="large" rounded source={{ uri: cfData.titlePhoto }}></Avatar></View>
-      {cfData.handle ? <View><Text style={{ color: 'white', fontWeight: "400", fontSize: 30, marginTop: 20 }}>Hello {cfData?.handle}!</Text></View> : null}
-      <View><Text style={{ color: 'white', fontWeight: "400", marginBottom: 20, fontSize: 20 }}>Welcome Back!</Text></View>
-      {cfData.rating ? <View style={{ ...styles.outer, backgroundColor: '#E6DFF1', shadowColor: '#E6DFF1', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Rating: {cfData.rating}</Text></View> : null}
-      {cfData.rank ? <View style={{ ...styles.outer, backgroundColor: '#F1DFDE', shadowColor: '#F1DFDE', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, elevation: 10 }}><Text style={{ ...styles.text, color: 'black' }}>Rank: {cfData.rank}</Text></View> : null}
-      {cfData.rating ? <View style={{ borderWidth: 0, marginTop: 20, borderRadius: 25, backgroundColor: '#b8ecf2' }}><LineChart
-        data={{
-          datasets: [
-            {
-              data: ratings
-            }
-          ]
-        }}
-        width={screenWidth - 20}
-        height={200}
-        yAxisLabel=""
-        yAxisSuffix=""
-        yAxisInterval={1} // optional, defaults to 1
-        chartConfig={chartConfig}
-        bezier
-        style={{
-          borderRadius: 25,
-          paddingTop: 20
-        }}
-      /></View> : null}
-    </View >
-  }
+    const ratingHistory = cfData.ratingHistory || [];
+    const highestRating = ratingHistory.length > 0 
+      ? Math.max(...ratingHistory.map(r => r.newRating))
+      : 0;
+    const averageRating = ratingHistory.length > 0
+      ? Math.round(ratingHistory.reduce((a, b) => a + b.newRating, 0) / ratingHistory.length)
+      : 0;
+    const contestCount = ratingHistory.length;
 
-  const chartConfig = {
-    backgroundColor: "#b8ecf2",
-    backgroundGradientFrom: "#b8ecf2",
-    backgroundGradientTo: "#b8ecf2",
-    fillShadowGradientFromOpacity: "0.5",
-    fillShadowGradientFromOffset: "0.5",
-    fillShadowGradientFrom: "#3df53d",
-    fillShadowGradientTo: "#3df53d",
-    decimalPlaces: 0,
-    color: (opacity = 1) => `pink`,
-    labelColor: (opacity = 1) => `black`,
-    style: {
-      borderRadius: 25,
-    },
-    propsForDots: {
-      r: "3",
-      strokeWidth: "2",
-      stroke: "#e86500"
-    },
-    propsForBackgroundLines: {
-      strokeDasharray: '',
-    },
-  }
+    return (
+      <View style={styles.contentContainer}>
+        <View style={styles.profileContainer}>
+          <View style={styles.avatarContainer}>
+            <Avatar 
+              size="large" 
+              rounded 
+              source={cfData.titlePhoto ? { uri: cfData.titlePhoto } : userIcon}
+            />
+          </View>
+          <Text style={styles.username}>Hello {cfusername}</Text>
+          <Text style={styles.welcomeText}>Welcome Back!</Text>
+          
+          <View style={styles.statsBox}>
+            <Text style={styles.statText}>Rating: {cfData.rating || 'N/A'}</Text>
+          </View>
+          
+          <View style={styles.statsBox}>
+            <Text style={styles.statText}>Rank: {cfData.rank || 'newbie'}</Text>
+          </View>
+        </View>
+
+        {ratingHistory.length > 0 && (
+          <View style={styles.chartContainer}>
+            <Text style={styles.chartTitle}>Rating History</Text>
+            <VictoryChart
+              theme={VictoryTheme.material}
+              width={screenWidth - 40}
+              height={220}
+              padding={{ top: 10, bottom: 40, left: 50, right: 20 }}
+              domainPadding={{ y: 20 }}
+            >
+              <VictoryAxis
+                dependentAxis
+                style={{
+                  axis: { stroke: "rgba(255,255,255,0.1)" },
+                  tickLabels: { fill: "rgba(255,255,255,0.6)", fontSize: 12 },
+                  grid: { stroke: "rgba(255,255,255,0.05)" }
+                }}
+              />
+              <VictoryAxis
+                style={{
+                  axis: { stroke: "rgba(255,255,255,0.1)" },
+                  tickLabels: { fill: "rgba(255,255,255,0.6)", fontSize: 12 },
+                  grid: { stroke: "rgba(255,255,255,0.05)" }
+                }}
+              />
+              <VictoryLine
+                data={ratingHistory.map((item, index) => ({
+                  x: index + 1,
+                  y: item.newRating
+                }))}
+                style={{
+                  data: { 
+                    stroke: "#FF3C32",
+                    strokeWidth: 2,
+                  }
+                }}
+              />
+              <VictoryScatter
+                data={ratingHistory.map((item, index) => ({
+                  x: index + 1,
+                  y: item.newRating
+                }))}
+                size={4}
+                style={{
+                  data: {
+                    fill: "#1A1B1E",
+                    stroke: "#FF3C32",
+                    strokeWidth: 2
+                  }
+                }}
+              />
+            </VictoryChart>
+
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Highest</Text>
+                <Text style={styles.statValue}>{highestRating}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Average</Text>
+                <Text style={styles.statValue}>{averageRating}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Contests</Text>
+                <Text style={styles.statValue}>{contestCount}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      {showDialog && <DialogInput isDialogVisible={showDialog}
-        title={"Enter Codeforces username"}
-        hintInput={"Type Here"}
-        submitInput={async (inputText) => {
-          await setShowDialog(false);
-          await AsyncStorage.setItem('cfusername', inputText)
-          await setCfUsername(inputText)
-        }}
-        closeDialog={() => {
-          if (cfusername !== undefined) setShowDialog(false)
-          else Alert.alert('Username Required', 'Please enter a valid username!');
-        }}>
-      </DialogInput>}
-      {loading || loading2 ? getData() : <ScrollView showsHorizontalScrollIndicator="false" style={{ height: "100%" }} refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }>
+      {showDialog && (
+        <DialogInput
+          isDialogVisible={showDialog}
+          title="Enter Codeforces username"
+          hintInput="Type Here"
+          submitInput={handleDialogSubmit}
+          closeDialog={handleDialogClose}
+        />
+      )}
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {getData()}
-      </ScrollView>}
+      </ScrollView>
     </SafeAreaView>
-  )
-}
-
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: "#1D1C21"
+    backgroundColor: '#1A1B1E',
   },
-  text: {
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+  },
+  contentContainer: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  profileContainer: {
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 20,
+  },
+  avatarContainer: {
+    marginBottom: 10,
+    borderColor: '#FF3C32',
+    borderWidth: 3,
+    borderRadius: 60,
+    padding: 5,
+  },
+  username: {
     color: 'white',
-    textAlign: "center",
     fontWeight: "400",
-    paddingVertical: 10,
+    fontSize: 30,
+    marginTop: 20,
+  },
+  welcomeText: {
+    color: 'white',
+    fontWeight: "400",
+    marginBottom: 20,
     fontSize: 20,
   },
-  outer: {
-    borderRadius: 10,
+  statsBox: {
+    backgroundColor: '#2A2B2F',
+    borderRadius: 16,
+    padding: 16,
     margin: 8,
-    width: screenWidth - 150,
-    height: 45
-  }
-})
+    width: screenWidth - 40,
+    shadowColor: "#FF3C32",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  statText: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: "500",
+    textAlign: 'center',
+  },
+  chartContainer: {
+    backgroundColor: '#1A1B1E',
+    borderRadius: 16,
+    padding: 16,
+    margin: 8,
+    shadowColor: "#FF3C32",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
+    width: '100%',
+    maxWidth: screenWidth - 32,
+    alignItems: 'center',
+  },
+  chartTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 16,
+    paddingHorizontal: 8,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  statValue: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: '#FF3C32',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+});

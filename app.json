@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/startscreen.png",
       "resizeMode": "contain",
@@ -18,14 +18,19 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ratingTracker.ratingTracker",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.ratingTracker.ratingTracker"
+      "package": "com.ratingTracker.ratingTracker",
+      "permissions": ["NOTIFICATIONS"]
     },
     "web": {
       "favicon": "./assets/logo.png"
@@ -34,6 +39,16 @@
       "eas": {
         "projectId": "3375cf41-739e-4a7b-bee7-24e9988365f0"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo.png",
+          "color": "#1A1B1E",
+          "sounds": ["./assets/notification.wav"]
+        }
+      ]
+    ]
   }
 }
