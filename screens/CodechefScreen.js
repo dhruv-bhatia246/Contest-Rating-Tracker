@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react'
-import { Dimensions, View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native'
+import { Dimensions, View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'
 import { Avatar } from "@rneui/base";
 import { AntDesign, SimpleLineIcons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
@@ -7,6 +7,8 @@ import userIcon from '../assets/user.png';
 import DialogInput from 'react-native-dialog-input';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VictoryLine, VictoryChart, VictoryAxis, VictoryTheme, VictoryTooltip, VictoryVoronoiContainer, VictoryScatter, VictoryZoomContainer, createContainer } from 'victory-native';
+import { CustomLoader } from '../components/CustomLoader';
+import { CustomRefreshControl } from '../components/CustomRefreshControl';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -181,16 +183,24 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
       setLoading2(false);
       setRefreshing(false);
       
-      Alert.alert('Error', 'Could not fetch user data. Please check your username.', [
-        { 
-          text: 'OK', 
-          onPress: () => {
-            AsyncStorage.removeItem('ccusername');
-            setCcUsername(undefined);
-            navigation.navigate('Entry');
+      Alert.alert(
+        'Connection Error',
+        'Unable to connect to CodeChef. Please check:\n\n• Your internet connection\n• If CodeChef is accessible\n• Your username is correct\n\nWould you like to try again or go back to settings?',
+        [
+          { 
+            text: 'Try Again', 
+            onPress: () => fetchData()
+          },
+          { 
+            text: 'Go to Settings', 
+            onPress: () => {
+              AsyncStorage.removeItem('ccusername');
+              setCcUsername(undefined);
+              navigation.navigate('Entry');
+            }
           }
-        }
-      ]);
+        ]
+      );
     }
   };
 
@@ -215,12 +225,29 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
 
   const getData = () => {
     if ((loading || loading2) && !refreshing) {
-      return <ActivityIndicator size="large" color="#3B82F6" />
+      return (
+        <View style={styles.loaderContainer}>
+          <CustomLoader size="large" />
+        </View>
+      );
     }
 
     if (error) {
-      Alert.alert('Error', error);
-      return <View></View>
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            {error.includes('scraping error') 
+              ? 'Unable to connect to CodeChef. Please check your internet connection and try again.'
+              : 'An unexpected error occurred. Please try again later.'}
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={fetchData}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
     }
 
     // Initialize ratings array from either ccData.ratingData or history
@@ -389,7 +416,7 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
         contentContainerStyle={styles.scrollContent}
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <CustomRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {getData()}
@@ -529,5 +556,23 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     width: '100%',
+  },
+  loaderContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 300,
+  },
+  retryButton: {
+    backgroundColor: '#FF3C32',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 })

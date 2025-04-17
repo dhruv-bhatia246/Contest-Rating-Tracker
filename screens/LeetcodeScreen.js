@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react'
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native'
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'
 import { Avatar } from "@rneui/base";
 import { AntDesign, SimpleLineIcons, FontAwesome } from "@expo/vector-icons";
 import { LineChart, BarChart, PieChart, ProgressChart, ContributionGraph, StackedBarChart } from "react-native-chart-kit";
@@ -9,16 +9,42 @@ import DialogInput from 'react-native-dialog-input';
 import userIcon from '../assets/user.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VictoryLine, VictoryChart, VictoryAxis, VictoryTheme, VictoryTooltip, VictoryVoronoiContainer, VictoryScatter, VictoryZoomContainer, createContainer } from 'victory-native';
+import { CustomLoader } from '../components/CustomLoader';
+import { CustomRefreshControl } from '../components/CustomRefreshControl';
+import { GradientCard } from '../components/GradientCard';
+import { OfflineError } from '../components/OfflineError';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 const screenWidth = Dimensions.get("window").width;
 
 // Create a combined container for both zoom and tooltip functionality
 const VictoryZoomVoronoiContainer = createContainer("zoom", "voronoi");
 
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+
+const fetchWithRetry = async (url, options, retries = MAX_RETRIES, delay = INITIAL_RETRY_DELAY) => {
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response;
+  } catch (error) {
+    if (retries > 0) {
+      console.log(`Retrying... ${retries} attempts left`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return fetchWithRetry(url, options, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+};
+
 export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
   const isFocused = useIsFocused();
+  const isConnected = useNetworkStatus();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState();
-  const [lcData, setLcData] = useState();
+  const [error, setError] = useState(null);
+  const [lcData, setLcData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState(0);
@@ -100,16 +126,74 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch(LEETCODE_API_ENDPOINT, init);
-      const data = await response.json();
-      setLcData(data.data);
-      setLastFetchTime(Date.now());
-      setLoading(false);
-      setRefreshing(false);
+      if (!lcusername) {
+        setError('Username is required');
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const response = await fetchWithRetry(LEETCODE_API_ENDPOINT, init);
+      const responseText = await response.text();
+      
+      try {
+        const data = JSON.parse(responseText);
+        if (!data || !data.data) {
+          throw new Error('Invalid response format');
+        }
+        
+        setLcData(data.data);
+        setLastFetchTime(Date.now());
+        setLoading(false);
+        setRefreshing(false);
+      } catch (parseError) {
+        console.error('JSON Parse error:', parseError);
+        console.error('Failed to parse response:', responseText);
+        setError('Failed to parse LeetCode data');
+        setLoading(false);
+        setRefreshing(false);
+      }
     } catch (error) {
+      console.error('LeetCode API error:', error);
       setError(error.message);
       setLoading(false);
       setRefreshing(false);
+      
+      if (error.message.includes('API error')) {
+        Alert.alert(
+          'Connection Error',
+          'Unable to connect to LeetCode. Please check:\n\n• Your internet connection\n• If LeetCode is accessible\n• Your username is correct\n\nWould you like to try again or go back to settings?',
+          [
+            { 
+              text: 'Try Again', 
+              onPress: () => fetchData()
+            },
+            { 
+              text: 'Go to Settings', 
+              onPress: () => {
+                AsyncStorage.removeItem('lcusername');
+                setLcUsername(undefined);
+                navigation.navigate('Entry');
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Error',
+          'An unexpected error occurred. Please try again later.',
+          [
+            { 
+              text: 'Try Again', 
+              onPress: () => fetchData()
+            },
+            { 
+              text: 'Cancel', 
+              style: 'cancel'
+            }
+          ]
+        );
+      }
     }
   };
 
@@ -157,11 +241,11 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
           withCustomBarColorFromData={true}
           radius={36}
           chartConfig={{
-            backgroundGradientFromOpacity: 0.5,
-            backgroundGradientToOpacity: 1,
-            backgroundColor: "#1A1B1E",
-            backgroundGradientFrom: "#1A1B1E",
-            backgroundGradientTo: "#1A1B1E",
+            backgroundGradientFromOpacity: 0,
+            backgroundGradientToOpacity: 0,
+            backgroundColor: "transparent",
+            backgroundGradientFrom: "transparent",
+            backgroundGradientTo: "transparent",
             decimalPlaces: 2,
             color: (opacity = 1, _index) => `rgba(255, 60, 50, ${opacity})`,
             labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
@@ -173,13 +257,36 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
   }
 
   const getData = () => {
+    if (!isConnected) {
+      return <OfflineError onRetry={fetchData} />;
+    }
+
     if (loading && !refreshing) {
-      return <ActivityIndicator size="large" color="#3B82F6" />
+      return (
+        <View style={styles.loaderContainer}>
+          <CustomLoader size="large" />
+        </View>
+      );
     }
+
     if (error) {
-      Alert.alert('Error', error);
-      return <View></View>
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            {error.includes('API error') 
+              ? 'Unable to connect to LeetCode. Please check your internet connection and try again.'
+              : 'An unexpected error occurred. Please try again later.'}
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={fetchData}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      );
     }
+
     for (let i = 0; i < lcData?.userContestRankingHistory?.length; i++) {
       if (lcData?.userContestRankingHistory[i]?.attended === true) {
         contestRatings.push(lcData?.userContestRankingHistory[i].rating);
@@ -198,30 +305,35 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
         percData.push(quesStats[0] / allQuesStats[0]);
       }
     }
-    return <View style={{ marginTop: 30, marginBottom: 80, alignItems: 'center', width: '100%' }}>
+    return <View style={{ marginTop: 30, marginBottom: 20, alignItems: 'center', width: '100%' }}>
       <View style={styles.avatarContainer}>
         <Avatar size="large" rounded source={lcData?.titlePhoto ? { uri: lcData?.matchedUser.profile.userAvatar } : userIcon} />
       </View>
       {lcData?.matchedUser.username ? <View><Text style={styles.username}>Hello {lcData?.matchedUser.username}</Text></View> : null}
       <View><Text style={styles.welcomeText}>Welcome Back!</Text></View>
+      
       {contestRatings[contestRatings.length - 1] ? 
-        <View style={styles.statsBox}>
+        <GradientCard gradientColors={['#FF3C32', '#FF6B52']}>
           <Text style={styles.statText}>Rating: {Math.round(contestRatings[contestRatings.length - 1])}</Text>
-        </View> 
+        </GradientCard>
       : null}
+      
       {lcData?.matchedUser.profile.ranking ? 
-        <View style={styles.statsBox}>
+        <GradientCard gradientColors={['#FF3C32', '#FF8652']}>
           <Text style={styles.statText}>Rank: {lcData?.matchedUser.profile.ranking}</Text>
-        </View> 
+        </GradientCard>
       : null}
+      
       {lcData?.userContestRanking?.topPercentage ? 
-        <View style={styles.statsBox}>
+        <GradientCard gradientColors={['#FF3C32', '#FFA152']}>
           <Text style={styles.statText}>Top: {lcData?.userContestRanking?.topPercentage}%</Text>
-        </View> 
+        </GradientCard>
       : null}
+      
       <View>{ProgressRing()}</View>
+      
       {lcData?.userContestRanking?.topPercentage ? 
-        <View style={styles.chartContainer}>
+        <GradientCard gradientColors={['#FF3C32', '#FF6B52']} style={styles.chartContainer}>
           <Text style={styles.chartTitle}>Rating History</Text>
           <VictoryChart
             theme={VictoryTheme.material}
@@ -265,8 +377,9 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
             />
             <VictoryLine
               animate={{
-                duration: 2000,
-                onLoad: { duration: 1000 }
+                duration: 1000,
+                onLoad: { duration: 500 },
+                easing: "cubic"
               }}
               style={{
                 data: { 
@@ -280,6 +393,11 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
               }))}
             />
             <VictoryScatter
+              animate={{
+                duration: 1000,
+                onLoad: { duration: 500 },
+                easing: "cubic"
+              }}
               data={contestRatings.map((rating, index) => ({
                 x: index + 1,
                 y: rating
@@ -315,7 +433,7 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
               </Text>
             </View>
           </View>
-        </View> 
+        </GradientCard> 
       : null}
     </View>
   }
@@ -327,9 +445,6 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
   };
 
   const chartConfig = {
-    backgroundColor: "#1A1B1E",
-    backgroundGradientFrom: "#1A1B1E",
-    backgroundGradientTo: "#1A1B1E",
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
@@ -366,16 +481,10 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
       <ScrollView 
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false} 
-        contentContainerStyle={{
-          alignItems: 'center',
-          width: '100%',
-          paddingBottom: 20
-        }}
-        style={{ 
-          width: '100%'
-        }} 
+        contentContainerStyle={styles.contentContainer}
+        style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <CustomRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {getData()}
@@ -389,15 +498,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1A1B1E',
-  },
-  scrollContent: {
-    flexGrow: 1,
     alignItems: 'center',
   },
   contentContainer: {
     width: '100%',
     alignItems: 'center',
-    paddingVertical: 30,
+    flexGrow: 1,
+    minHeight: '100%',
+  },
+  scrollView: {
+    width: '100%',
   },
   profileContainer: {
     alignItems: 'center',
@@ -423,20 +533,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 20,
   },
-  statsBox: {
-    backgroundColor: '#2A2B2F',
-    borderRadius: 16,
-    padding: 16,
-    margin: 8,
-    width: screenWidth - 40,
-    shadowColor: "#FF3C32",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 60, 50, 0.3)',
-  },
   statText: {
     color: 'white',
     fontSize: 20,
@@ -444,15 +540,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   chartContainer: {
-    backgroundColor: '#2A2B2F',
-    borderRadius: 16,
-    padding: 16,
-    margin: 8,
-    shadowColor: "#FF3C32",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 6,
     width: '100%',
     maxWidth: screenWidth - 32,
     alignItems: 'center',
@@ -493,6 +580,24 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#FF3C32',
     fontSize: 16,
+    textAlign: 'center',
+  },
+  loaderContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 300,
+  },
+  retryButton: {
+    backgroundColor: '#FF3C32',
+    padding: 15,
+    borderRadius: 5,
+    marginTop: 20,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
     textAlign: 'center',
   },
 })

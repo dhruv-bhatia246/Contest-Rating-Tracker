@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import CheckBox from "expo-checkbox";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -27,6 +27,9 @@ export const EntryScreen = ({ navigation, lcusername, setLcUsername, cfusername,
   // Add new animations for platform selection
   const platformsContainerAnim = useRef(new Animated.Value(0)).current;
   const buttonAnim = useRef(new Animated.Value(0)).current;
+
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
 
   // Add reset function
   const resetState = () => {
@@ -97,6 +100,54 @@ export const EntryScreen = ({ navigation, lcusername, setLcUsername, cfusername,
     }).start();
   }, [selectedPlatforms.codeforces]);
 
+  // Load remember me preference
+  useEffect(() => {
+    const loadRememberMe = async () => {
+      try {
+        const savedRememberMe = await AsyncStorage.getItem('rememberMe');
+        if (savedRememberMe === 'true') {
+          setRememberMe(true);
+          // If remember me is true, check if we have saved usernames
+          const savedLcUsername = await AsyncStorage.getItem('lcusername');
+          const savedCfUsername = await AsyncStorage.getItem('cfusername');
+          const savedCcUsername = await AsyncStorage.getItem('ccusername');
+          
+          let hasSavedUsernames = false;
+          
+          if (savedLcUsername) {
+            setTempLcUsername(savedLcUsername);
+            setSelectedPlatforms(prev => ({ ...prev, leetcode: true }));
+            setLcUsername(savedLcUsername);
+            hasSavedUsernames = true;
+          }
+          if (savedCfUsername) {
+            setTempCfUsername(savedCfUsername);
+            setSelectedPlatforms(prev => ({ ...prev, codeforces: true }));
+            setCfUsername(savedCfUsername);
+            hasSavedUsernames = true;
+          }
+          if (savedCcUsername) {
+            setTempCcUsername(savedCcUsername);
+            setSelectedPlatforms(prev => ({ ...prev, codechef: true }));
+            setCcUsername(savedCcUsername);
+            hasSavedUsernames = true;
+          }
+
+          // If we have saved usernames, automatically navigate to Main screen
+          if (hasSavedUsernames) {
+            // Small delay to allow animations to complete
+            setTimeout(() => {
+              navigation.navigate('Main');
+            }, 500);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading remember me preference:', error);
+      }
+    };
+    loadRememberMe();
+  }, []);
+
   // Update platform selection animations
   const handlePlatformSelect = (platform, scaleAnim) => {
     setSelectedPlatforms((prev) => ({
@@ -121,74 +172,200 @@ export const EntryScreen = ({ navigation, lcusername, setLcUsername, cfusername,
     ]).start();
   };
 
+  const validateLeetcodeUsername = async (username) => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`https://leetcode.com/${username}`, {
+        method: 'HEAD',
+        redirect: 'follow',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response.status === 200 || response.status === 301 || response.status === 302;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error('Leetcode validation timed out');
+      } else {
+        console.error('Error validating Leetcode username:', error);
+      }
+      return false;
+    }
+  };
+
+  const validateCodeforcesUsername = async (username) => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`https://codeforces.com/api/user.info?handles=${username}`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        return false;
+      }
+
+      const text = await response.text();
+      const data = JSON.parse(text);
+      return data.status === 'OK' && data.result[0]?.handle === username;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error('Codeforces validation timed out');
+      } else {
+        console.error('Error validating Codeforces username:', error);
+      }
+      return false;
+    }
+  };
+
+  const validateCodechefUsername = async (username) => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`https://codechef-api.vercel.app/handle/${username}`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        return false;
+      }
+
+      const text = await response.text();
+      const data = JSON.parse(text);
+      return data.success;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.error('Codechef validation timed out');
+      } else {
+        console.error('Error validating Codechef username:', error);
+      }
+      return false;
+    }
+  };
+
   const handleDone = async () => {
-    // Validate that usernames are entered for selected platforms
+    // Basic validation first
     if (selectedPlatforms.leetcode && !tempLcUsername) {
-      alert('Please enter your Leetcode username');
+      Alert.alert('Error', 'Please enter your Leetcode username');
       return;
     }
     if (selectedPlatforms.codechef && !tempCcUsername) {
-      alert('Please enter your Codechef username');
+      Alert.alert('Error', 'Please enter your Codechef username');
       return;
     }
     if (selectedPlatforms.codeforces && !tempCfUsername) {
-      alert('Please enter your Codeforces username');
+      Alert.alert('Error', 'Please enter your Codeforces username');
       return;
     }
 
-    // Check if at least one platform is selected
     if (!selectedPlatforms.leetcode && !selectedPlatforms.codechef && !selectedPlatforms.codeforces) {
-      alert('Please select at least one platform');
+      Alert.alert('Error', 'Please select at least one platform');
       return;
     }
 
-    // Animate exit
-    Animated.parallel([
-      Animated.sequence([
-        Animated.timing(leetcodeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(codechefAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(codeforcesAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(platformsContainerAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-        easing: Easing.bezier(0.4, 0, 0.2, 1),
-      }),
-      Animated.timing(buttonAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(async () => {
-      // Save usernames to AsyncStorage and update state
+    setIsValidating(true);
+
+    try {
+      // Save remember me preference
+      await AsyncStorage.setItem('rememberMe', rememberMe.toString());
+
+      // Create validation promises for selected platforms
+      const validationPromises = [];
+      const validationResults = {};
+
       if (selectedPlatforms.leetcode) {
-        await AsyncStorage.setItem('lcusername', tempLcUsername);
-        setLcUsername(tempLcUsername);
-      }
-      if (selectedPlatforms.codechef) {
-        await AsyncStorage.setItem('ccusername', tempCcUsername);
-        setCcUsername(tempCcUsername);
+        validationPromises.push(
+          validateLeetcodeUsername(tempLcUsername)
+            .then(isValid => { validationResults.leetcode = isValid; })
+        );
       }
       if (selectedPlatforms.codeforces) {
-        await AsyncStorage.setItem('cfusername', tempCfUsername);
-        setCfUsername(tempCfUsername);
+        validationPromises.push(
+          validateCodeforcesUsername(tempCfUsername)
+            .then(isValid => { validationResults.codeforces = isValid; })
+        );
+      }
+      if (selectedPlatforms.codechef) {
+        validationPromises.push(
+          validateCodechefUsername(tempCcUsername)
+            .then(isValid => { validationResults.codechef = isValid; })
+        );
       }
 
-      navigation.navigate('Main');
-    });
+      // Wait for all validations to complete
+      await Promise.all(validationPromises);
+
+      // Check validation results
+      if (selectedPlatforms.leetcode && !validationResults.leetcode) {
+        Alert.alert('Error', 'Invalid Leetcode username. Please check and try again.');
+        return;
+      }
+      if (selectedPlatforms.codeforces && !validationResults.codeforces) {
+        Alert.alert('Error', 'Invalid Codeforces username. Please check and try again.');
+        return;
+      }
+      if (selectedPlatforms.codechef && !validationResults.codechef) {
+        Alert.alert('Error', 'Invalid Codechef username. Please check and try again.');
+        return;
+      }
+
+      // All validations passed, proceed with saving
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(leetcodeAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(codechefAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(codeforcesAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.timing(platformsContainerAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+          easing: Easing.bezier(0.4, 0, 0.2, 1),
+        }),
+        Animated.timing(buttonAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(async () => {
+        if (selectedPlatforms.leetcode) {
+          await AsyncStorage.setItem('lcusername', tempLcUsername);
+          setLcUsername(tempLcUsername);
+        }
+        if (selectedPlatforms.codechef) {
+          await AsyncStorage.setItem('ccusername', tempCcUsername);
+          setCcUsername(tempCcUsername);
+        }
+        if (selectedPlatforms.codeforces) {
+          await AsyncStorage.setItem('cfusername', tempCfUsername);
+          setCfUsername(tempCfUsername);
+        }
+
+        navigation.navigate('Main');
+      });
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   return (
@@ -302,12 +479,27 @@ export const EntryScreen = ({ navigation, lcusername, setLcUsername, cfusername,
           }
         ]}
       >
+        <View style={styles.rememberMeContainer}>
+          <CheckBox
+            value={rememberMe}
+            onValueChange={setRememberMe}
+            style={styles.rememberMeCheckbox}
+            color={rememberMe ? '#1E90FF' : undefined}
+          />
+          <Text style={styles.rememberMeText}>Remember Me</Text>
+        </View>
+
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, isValidating && styles.buttonDisabled]}
           onPress={handleDone}
           activeOpacity={0.8}
+          disabled={isValidating}
         >
-          <Text style={styles.buttonText}>Continue</Text>
+          {isValidating ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Continue</Text>
+          )}
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -415,5 +607,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingHorizontal: 5,
+  },
+  rememberMeCheckbox: {
+    marginRight: 8,
+  },
+  rememberMeText: {
+    color: '#fff',
+    fontSize: 14,
   },
 });

@@ -1,19 +1,44 @@
 import React, { useEffect, useState } from 'react'
-import { Dimensions, View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native'
+import { Dimensions, View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'
 import { Avatar } from "@rneui/base";
 import { useIsFocused } from "@react-navigation/native";
 import userIcon from '../assets/user.png';
 import DialogInput from 'react-native-dialog-input';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VictoryLine, VictoryChart, VictoryAxis, VictoryTheme, VictoryScatter, VictoryTooltip, VictoryVoronoiContainer, VictoryZoomContainer, createContainer } from 'victory-native';
+import { CustomLoader } from '../components/CustomLoader';
+import { CustomRefreshControl } from '../components/CustomRefreshControl';
+import { OfflineError } from '../components/OfflineError';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 const screenWidth = Dimensions.get("window").width;
 
 // Create a combined container for both zoom and tooltip functionality
 const VictoryZoomVoronoiContainer = createContainer("zoom", "voronoi");
 
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+
+const fetchWithRetry = async (url, options, retries = MAX_RETRIES, delay = INITIAL_RETRY_DELAY) => {
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response;
+  } catch (error) {
+    if (retries > 0) {
+      console.log(`Retrying... ${retries} attempts left`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return fetchWithRetry(url, options, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+};
+
 export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
   const isFocused = useIsFocused();
+  const isConnected = useNetworkStatus();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cfData, setCfData] = useState(null);
@@ -21,6 +46,10 @@ export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [lastFetchTime, setLastFetchTime] = useState(0);
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+  const capitalizeFirstLetter = (string) => {
+    return string ? string.charAt(0).toUpperCase() + string.slice(1).toLowerCase() : 'Newbie';
+  };
 
   // Initialize username from AsyncStorage if not provided
   useEffect(() => {
@@ -69,8 +98,8 @@ export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
       }
 
       const [userResponse, ratingResponse] = await Promise.all([
-        fetch(`https://codeforces.com/api/user.info?handles=${cfusername}`),
-        fetch(`https://codeforces.com/api/user.rating?handle=${cfusername}`)
+        fetchWithRetry(`https://codeforces.com/api/user.info?handles=${cfusername}`),
+        fetchWithRetry(`https://codeforces.com/api/user.rating?handle=${cfusername}`)
       ]);
 
       const userData = await userResponse.json();
@@ -91,16 +120,24 @@ export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
     } catch (error) {
       console.error('Codeforces API error:', error);
       setError(error.message);
-      Alert.alert('Error', 'Could not fetch user data. Please check your username.', [
-        { 
-          text: 'OK', 
-          onPress: () => {
-            AsyncStorage.removeItem('cfusername');
-            setCfUsername(undefined);
-            navigation.navigate('Entry');
+      Alert.alert(
+        'Connection Error',
+        'Unable to connect to Codeforces. Please check:\n\n• Your internet connection\n• If Codeforces is accessible\n• Your username is correct\n\nWould you like to try again or go back to settings?',
+        [
+          { 
+            text: 'Try Again', 
+            onPress: () => fetchData()
+          },
+          { 
+            text: 'Go to Settings', 
+            onPress: () => {
+              AsyncStorage.removeItem('cfusername');
+              setCfUsername(undefined);
+              navigation.navigate('Entry');
+            }
           }
-        }
-      ]);
+        ]
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -127,14 +164,32 @@ export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
   };
 
   const getData = () => {
+    if (!isConnected) {
+      return <OfflineError onRetry={fetchData} />;
+    }
+
     if (loading && !refreshing) {
-      return <ActivityIndicator size="large" color="#3B82F6" />
+      return (
+        <View style={styles.loaderContainer}>
+          <CustomLoader size="large" />
+        </View>
+      );
     }
 
     if (error) {
       return (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Error: {error}</Text>
+          <Text style={styles.errorText}>
+            {error.includes('API error') 
+              ? 'Unable to connect to Codeforces. Please check your internet connection and try again.'
+              : 'An unexpected error occurred. Please try again later.'}
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={fetchData}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -176,7 +231,7 @@ export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
           </View>
           
           <View style={styles.statsBox}>
-            <Text style={styles.statText}>Rank: {cfData.rank || 'newbie'}</Text>
+            <Text style={styles.statText}>Rank: {capitalizeFirstLetter(cfData.rank)}</Text>
           </View>
         </View>
 
@@ -290,7 +345,7 @@ export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <CustomRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {getData()}
@@ -407,6 +462,24 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#FF3C32',
     fontSize: 16,
+    textAlign: 'center',
+  },
+  loaderContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 300,
+  },
+  retryButton: {
+    backgroundColor: '#FF3C32',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
     textAlign: 'center',
   },
 });

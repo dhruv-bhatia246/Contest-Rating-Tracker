@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { Image, StyleSheet, Platform, View } from 'react-native';
+import { Image, StyleSheet, Platform, View, Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LeetcodeScreen } from './LeetcodeScreen';
 import { CodeforcesScreen } from './CodeforcesScreen';
@@ -17,14 +17,44 @@ import { CodechefScreen } from './CodechefScreen';
 import { EntryScreen } from './EntryScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const Stack = createNativeStackNavigator();
+
+const config = {
+  animation: 'spring',
+  config: {
+    stiffness: 1000,
+    damping: 500,
+    mass: 3,
+    overshootClamping: true,
+    restDisplacementThreshold: 0.01,
+    restSpeedThreshold: 0.01,
+  },
+};
+
+const forFade = ({ current, next }) => {
+  const opacity = Animated.add(
+    current.progress,
+    next ? next.progress : 0
+  ).interpolate({
+    inputRange: [0, 1, 2],
+    outputRange: [0, 1, 0],
+  });
+
+  return {
+    leftButtonStyle: { opacity },
+    rightButtonStyle: { opacity },
+    titleStyle: { opacity },
+    backgroundStyle: { opacity },
+  };
+};
 
 export default function MainScreen() {
   const [cfusername, setCfUsername] = useState();
   const [ccusername, setCcUsername] = useState();
   const [lcusername, setLcUsername] = useState();
   const Tab = createMaterialTopTabNavigator();
-  const Stack = createNativeStackNavigator();
 
   // Load selected platforms from AsyncStorage
   useEffect(() => {
@@ -40,125 +70,129 @@ export default function MainScreen() {
     loadUsernames();
   }, []);
 
-  const TabNavigator = () => (
-    <SafeAreaView style={styles.container} edges={['right', 'left']}>
-      <View style={styles.statusBarFill} />
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: () => {
-            let icon;
-            if (route.name === 'LeetCode') {
-              icon = leetcodeIcon;
-            } else if (route.name === 'Codeforces') {
-              icon = codeforces;
-            } else if (route.name === 'Codechef') {
-              icon = codechef;
-            } else if (route.name === 'Contests') {
-              icon = trophy;
-            } else if (route.name === 'Settings') {
-              icon = setting;
-            }
-            return (
-              <Image
-                source={icon}
-                style={styles.iconStyle}
-                resizeMode="contain"
+  const TabNavigator = () => {
+    const insets = useSafeAreaInsets();
+    
+    return (
+      <View style={styles.container}>
+        <Tab.Navigator
+          style={{ marginTop: insets.top }}
+          screenOptions={({ route }) => ({
+            tabBarIcon: () => {
+              let icon;
+              if (route.name === 'LeetCode') {
+                icon = leetcodeIcon;
+              } else if (route.name === 'Codeforces') {
+                icon = codeforces;
+              } else if (route.name === 'Codechef') {
+                icon = codechef;
+              } else if (route.name === 'Contests') {
+                icon = trophy;
+              } else if (route.name === 'Settings') {
+                icon = setting;
+              }
+              return (
+                <Image
+                  source={icon}
+                  style={styles.iconStyle}
+                  resizeMode="contain"
+                />
+              );
+            },
+            tabBarShowLabel: false,
+            tabBarBackground: () => (
+              <BlurView
+                style={StyleSheet.absoluteFill}
+                blurType="dark"
+                blurAmount={10}
               />
-            );
-          },
-          tabBarShowLabel: false,
-          tabBarBackground: () => (
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType="dark"
-              blurAmount={10}
-            />
-          ),
-          tabBarStyle: {
-            backgroundColor: '#2A2B2F',
-            borderTopWidth: 0,
-            elevation: 0,
-            height: 60,
-            marginTop: Platform.OS === 'ios' ? 50 : 0,
-          },
-          tabBarIndicatorStyle: {
-            backgroundColor: '#2563EB',
-            height: 3,
-          },
-          style: {
-            backgroundColor: '#1A1B1E',
-          },
-        })}
-      >
-        {lcusername && (
-          <Tab.Screen 
-            name="LeetCode" 
-            children={({ navigation }) => (
-              <LeetcodeScreen 
-                navigation={navigation}
-                lcusername={lcusername} 
-                setLcUsername={setLcUsername} 
-              />
-            )} 
-          />
-        )}
-        {cfusername && (
-          <Tab.Screen 
-            name="Codeforces" 
-            children={({ navigation }) => (
-              <CodeforcesScreen 
-                navigation={navigation}
-                cfusername={cfusername} 
-                setCfUsername={setCfUsername} 
-              />
-            )} 
-          />
-        )}
-        {ccusername && (
-          <Tab.Screen 
-            name="Codechef" 
-            children={({ navigation }) => (
-              <CodechefScreen 
-                navigation={navigation}
-                ccusername={ccusername} 
-                setCcUsername={setCcUsername} 
-              />
-            )} 
-          />
-        )}
-        {(lcusername || cfusername || ccusername) && (
-          <>
+            ),
+            tabBarStyle: {
+              backgroundColor: '#2A2B2F',
+              borderTopWidth: 0,
+              elevation: 0,
+              height: 45,
+              paddingBottom: 0,
+            },
+            tabBarIndicatorStyle: {
+              backgroundColor: '#2563EB',
+              height: 3,
+            },
+            style: {
+              backgroundColor: '#1A1B1E',
+            },
+          })}
+        >
+          {lcusername && (
             <Tab.Screen 
-              name="Contests" 
+              name="LeetCode" 
               children={({ navigation }) => (
-                <ContestScreen 
+                <LeetcodeScreen 
                   navigation={navigation}
-                  cfusername={cfusername} 
-                  setCfUsername={setCfUsername} 
                   lcusername={lcusername} 
                   setLcUsername={setLcUsername} 
                 />
               )} 
             />
+          )}
+          {cfusername && (
             <Tab.Screen 
-              name="Settings" 
+              name="Codeforces" 
               children={({ navigation }) => (
-                <SettingsScreen 
+                <CodeforcesScreen 
                   navigation={navigation}
                   cfusername={cfusername} 
                   setCfUsername={setCfUsername} 
-                  lcusername={lcusername} 
-                  setLcUsername={setLcUsername} 
+                />
+              )} 
+            />
+          )}
+          {ccusername && (
+            <Tab.Screen 
+              name="Codechef" 
+              children={({ navigation }) => (
+                <CodechefScreen 
+                  navigation={navigation}
                   ccusername={ccusername} 
-                  setCcUsername={setCcUsername}
+                  setCcUsername={setCcUsername} 
                 />
               )} 
             />
-          </>
-        )}
-      </Tab.Navigator>
-    </SafeAreaView>
-  );
+          )}
+          {(lcusername || cfusername || ccusername) && (
+            <>
+              <Tab.Screen 
+                name="Contests" 
+                children={({ navigation }) => (
+                  <ContestScreen 
+                    navigation={navigation}
+                    cfusername={cfusername} 
+                    setCfUsername={setCfUsername} 
+                    lcusername={lcusername} 
+                    setLcUsername={setLcUsername} 
+                  />
+                )} 
+              />
+              <Tab.Screen 
+                name="Settings" 
+                children={({ navigation }) => (
+                  <SettingsScreen 
+                    navigation={navigation}
+                    cfusername={cfusername} 
+                    setCfUsername={setCfUsername} 
+                    lcusername={lcusername} 
+                    setLcUsername={setLcUsername} 
+                    ccusername={ccusername} 
+                    setCcUsername={setCcUsername}
+                  />
+                )} 
+              />
+            </>
+          )}
+        </Tab.Navigator>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaProvider>
@@ -167,7 +201,17 @@ export default function MainScreen() {
         <Stack.Navigator
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#1A1B1E' }
+            contentStyle: { 
+              backgroundColor: '#1A1B1E',
+            },
+            animation: 'fade',
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+            transitionSpec: {
+              open: config,
+              close: config,
+            },
+            cardStyleInterpolator: forFade,
           }}
         >
           <Stack.Screen 
@@ -191,7 +235,10 @@ export default function MainScreen() {
             name="Main"
             component={TabNavigator}
             options={{ 
-              headerShown: false
+              headerShown: false,
+              contentStyle: {
+                backgroundColor: '#1A1B1E',
+              }
             }}
           />
         </Stack.Navigator>
@@ -205,13 +252,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1A1B1E',
   },
-  statusBarFill: {
-    backgroundColor: '#1A1B1E',
-    height: 0,
-  },
   iconStyle: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     tintColor: '#fff'
   },
 });

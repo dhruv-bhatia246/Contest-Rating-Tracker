@@ -20,6 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ratingTracker.ratingTracker",
+      "buildNumber": "1",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"]
       }
@@ -30,6 +31,7 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.ratingTracker.ratingTracker",
+      "versionCode": 1,
       "permissions": ["NOTIFICATIONS"]
     },
     "web": {
