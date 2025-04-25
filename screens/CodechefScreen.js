@@ -27,23 +27,39 @@ export const CodechefScreen = ({ navigation, ccusername, setCcUsername }) => {
   const [lastFetchTime, setLastFetchTime] = useState(0);
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-  // Initialize username from AsyncStorage if not provided
+  // Reset cache when username changes
   useEffect(() => {
-    const initUsername = async () => {
-      try {
-        const storedUsername = await AsyncStorage.getItem('ccusername');
-        if (storedUsername && !ccusername) {
-          setCcUsername(storedUsername);
-        } else if (!storedUsername && !ccusername) {
+    setLastFetchTime(0); // Reset cache when username changes
+    setCcData(null); // Clear existing data
+  }, [ccusername]);
+
+  // Initialize username from AsyncStorage if not provided
+  const fetchUserName = async () => {
+    try {
+      // Only check AsyncStorage if we don't have a username prop
+      if (!ccusername) {
+        const value = await AsyncStorage.getItem('ccusername');
+        if (value !== null) {
+          setCcUsername(value);
+        } else {
           setShowDialog(true);
         }
-      } catch (e) {
-        console.error('Error initializing username:', e);
-        setError(e.message);
       }
-    };
-    initUsername();
-  }, []);
+    } catch (e) {
+      console.error('Error initializing username:', e);
+      setError(e.message);
+    }
+  };
+
+  useEffect(() => {
+    // Only fetch username from storage if we don't have one
+    if (!ccusername) {
+      fetchUserName();
+    } else {
+      setLoading(true);
+      fetchData();
+    }
+  }, [ccusername]);
 
   const onRefresh = React.useCallback(() => {
     if (!ccusername) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { Image, StyleSheet, Platform, View, Animated } from 'react-native';
+import { Image, StyleSheet, Platform, View, Animated, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LeetcodeScreen } from './LeetcodeScreen';
 import { CodeforcesScreen } from './CodeforcesScreen';
@@ -50,25 +50,90 @@ const forFade = ({ current, next }) => {
   };
 };
 
+const LoadingScreen = () => (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color="#3B82F6" />
+  </View>
+);
+
 export default function MainScreen() {
   const [cfusername, setCfUsername] = useState();
   const [ccusername, setCcUsername] = useState();
   const [lcusername, setLcUsername] = useState();
+  const [isLoading, setIsLoading] = useState(true);
   const Tab = createMaterialTopTabNavigator();
 
   // Load selected platforms from AsyncStorage
   useEffect(() => {
     const loadUsernames = async () => {
-      const storedLcUsername = await AsyncStorage.getItem('lcusername');
-      const storedCfUsername = await AsyncStorage.getItem('cfusername');
-      const storedCcUsername = await AsyncStorage.getItem('ccusername');
-      
-      if (storedLcUsername) setLcUsername(storedLcUsername);
-      if (storedCfUsername) setCfUsername(storedCfUsername);
-      if (storedCcUsername) setCcUsername(storedCcUsername);
+      try {
+        const [storedLcUsername, storedCfUsername, storedCcUsername] = await Promise.all([
+          AsyncStorage.getItem('lcusername'),
+          AsyncStorage.getItem('cfusername'),
+          AsyncStorage.getItem('ccusername')
+        ]);
+        
+        // Only set usernames if they exist in storage
+        if (storedLcUsername) {
+          setLcUsername(storedLcUsername);
+        } else {
+          setLcUsername(undefined);
+        }
+        
+        if (storedCfUsername) {
+          setCfUsername(storedCfUsername);
+        } else {
+          setCfUsername(undefined);
+        }
+        
+        if (storedCcUsername) {
+          setCcUsername(storedCcUsername);
+        } else {
+          setCcUsername(undefined);
+        }
+      } catch (error) {
+        console.error('Error loading usernames:', error);
+        // Reset all usernames on error
+        setLcUsername(undefined);
+        setCfUsername(undefined);
+        setCcUsername(undefined);
+      } finally {
+        setIsLoading(false);
+      }
     };
     loadUsernames();
   }, []);
+
+  // Add effect to persist username changes to AsyncStorage
+  useEffect(() => {
+    const saveUsernames = async () => {
+      try {
+        // Handle lcusername
+        if (lcusername) {
+          await AsyncStorage.setItem('lcusername', lcusername);
+        } else if (lcusername === undefined || lcusername === null) {
+          await AsyncStorage.removeItem('lcusername');
+        }
+
+        // Handle cfusername
+        if (cfusername) {
+          await AsyncStorage.setItem('cfusername', cfusername);
+        } else if (cfusername === undefined || cfusername === null) {
+          await AsyncStorage.removeItem('cfusername');
+        }
+
+        // Handle ccusername
+        if (ccusername) {
+          await AsyncStorage.setItem('ccusername', ccusername);
+        } else if (ccusername === undefined || ccusername === null) {
+          await AsyncStorage.removeItem('ccusername');
+        }
+      } catch (error) {
+        console.error('Error saving usernames:', error);
+      }
+    };
+    saveUsernames();
+  }, [lcusername, cfusername, ccusername]);
 
   const TabNavigator = () => {
     const insets = useSafeAreaInsets();
@@ -214,33 +279,39 @@ export default function MainScreen() {
             cardStyleInterpolator: forFade,
           }}
         >
-          <Stack.Screen 
-            name="Entry" 
-            options={{ 
-              headerShown: false
-            }}
-            children={({ navigation }) => (
-              <EntryScreen
-                navigation={navigation}
-                cfusername={cfusername}
-                setCfUsername={setCfUsername}
-                lcusername={lcusername}
-                setLcUsername={setLcUsername}
-                ccusername={ccusername}
-                setCcUsername={setCcUsername}
-              />
-            )}
-          />
-          <Stack.Screen
-            name="Main"
-            component={TabNavigator}
-            options={{ 
-              headerShown: false,
-              contentStyle: {
-                backgroundColor: '#1A1B1E',
-              }
-            }}
-          />
+          {isLoading ? (
+            <Stack.Screen 
+              name="Loading" 
+              component={LoadingScreen}
+            />
+          ) : (!lcusername && !cfusername && !ccusername) ? (
+            <Stack.Screen 
+              name="Entry" 
+              options={{ headerShown: false }}
+              children={({ navigation }) => (
+                <EntryScreen
+                  navigation={navigation}
+                  cfusername={cfusername}
+                  setCfUsername={setCfUsername}
+                  lcusername={lcusername}
+                  setLcUsername={setLcUsername}
+                  ccusername={ccusername}
+                  setCcUsername={setCcUsername}
+                />
+              )}
+            />
+          ) : (
+            <Stack.Screen
+              name="Main"
+              component={TabNavigator}
+              options={{ 
+                headerShown: false,
+                contentStyle: {
+                  backgroundColor: '#1A1B1E',
+                }
+              }}
+            />
+          )}
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
@@ -250,6 +321,12 @@ export default function MainScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1A1B1E',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#1A1B1E',
   },
   iconStyle: {

@@ -47,27 +47,43 @@ export const CodeforcesScreen = ({ navigation, cfusername, setCfUsername }) => {
   const [lastFetchTime, setLastFetchTime] = useState(0);
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
+  // Reset cache when username changes
+  useEffect(() => {
+    setLastFetchTime(0); // Reset cache when username changes
+    setCfData(null); // Clear existing data
+  }, [cfusername]);
+
   const capitalizeFirstLetter = (string) => {
     return string ? string.charAt(0).toUpperCase() + string.slice(1).toLowerCase() : 'Newbie';
   };
 
   // Initialize username from AsyncStorage if not provided
-  useEffect(() => {
-    const initUsername = async () => {
-      try {
-        const storedUsername = await AsyncStorage.getItem('cfusername');
-        if (storedUsername && !cfusername) {
-          setCfUsername(storedUsername);
-        } else if (!storedUsername && !cfusername) {
+  const fetchUserName = async () => {
+    try {
+      // Only check AsyncStorage if we don't have a username prop
+      if (!cfusername) {
+        const value = await AsyncStorage.getItem('cfusername');
+        if (value !== null) {
+          setCfUsername(value);
+        } else {
           setShowDialog(true);
         }
-      } catch (e) {
-        console.error('Error initializing username:', e);
-        setError(e.message);
       }
-    };
-    initUsername();
-  }, []);
+    } catch (e) {
+      console.error('Error initializing username:', e);
+      setError(e.message);
+    }
+  };
+
+  useEffect(() => {
+    // Only fetch username from storage if we don't have one
+    if (!cfusername) {
+      fetchUserName();
+    } else {
+      setLoading(true);
+      fetchData();
+    }
+  }, [cfusername]);
 
   const onRefresh = React.useCallback(() => {
     if (!cfusername) {

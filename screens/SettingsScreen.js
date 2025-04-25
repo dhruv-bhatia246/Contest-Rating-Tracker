@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, Switch, TouchableOpacity, Linking, Alert, TextInput } from 'react-native'
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, Switch, TouchableOpacity, Linking, Alert, TextInput, Modal, Platform } from 'react-native'
 import { FontAwesome5, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { version as appVersion } from '../package.json';
@@ -46,12 +46,66 @@ const NotificationTimeInput = ({ label, value, onChangeText, unit }) => (
   </View>
 );
 
+const AddAccountModal = ({ visible, platform, onClose, onSubmit }) => {
+  const [username, setUsername] = useState('');
+
+  const handleSubmit = () => {
+    if (username.trim()) {
+      onSubmit(username.trim());
+      setUsername('');
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Add {platform} Account</Text>
+          <TextInput
+            style={styles.modalInput}
+            placeholder={`Enter your ${platform} username`}
+            placeholderTextColor="#9CA3AF"
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <View style={styles.modalButtons}>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.modalButtonCancel]} 
+              onPress={() => {
+                setUsername('');
+                onClose();
+              }}
+            >
+              <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.modalButton, styles.modalButtonSubmit]}
+              onPress={handleSubmit}
+            >
+              <Text style={styles.modalButtonTextSubmit}>Add</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 export const SettingsScreen = ({ navigation, lcusername, setLcUsername, cfusername, setCfUsername, ccusername, setCcUsername }) => {
   const [notifyUpcoming, setNotifyUpcoming] = useState(true);
   const [notifyStarting, setNotifyStarting] = useState(true);
   const [showFinished, setShowFinished] = useState(false);
   const [upcomingNotificationTime, setUpcomingNotificationTime] = useState('24');
   const [startingNotificationTime, setStartingNotificationTime] = useState('30');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState(null);
 
   useEffect(() => {
     loadSettings();
@@ -109,8 +163,15 @@ export const SettingsScreen = ({ navigation, lcusername, setLcUsername, cfuserna
         {
           text: "Remove",
           onPress: async () => {
-            await AsyncStorage.removeItem(`${platform.toLowerCase()}username`);
-            setUsername(undefined);
+            try {
+              // Remove from AsyncStorage
+              await AsyncStorage.removeItem(`${platform.toLowerCase()}username`);
+              // Update state
+              setUsername(undefined);
+            } catch (error) {
+              console.error('Error removing account:', error);
+              Alert.alert('Error', 'Failed to remove account. Please try again.');
+            }
           },
           style: "destructive"
         }
@@ -128,6 +189,39 @@ export const SettingsScreen = ({ navigation, lcusername, setLcUsername, cfuserna
     Linking.openURL(urls[platform]).catch((err) => 
       Alert.alert('Error', 'Could not open profile')
     );
+  };
+
+  const handleAddAccount = (platform) => {
+    setSelectedPlatform(platform);
+    setModalVisible(true);
+  };
+
+  const handleSubmitUsername = async (username) => {
+    try {
+      const key = `${selectedPlatform.toLowerCase()}username`;
+      
+      // First update AsyncStorage
+      await AsyncStorage.setItem(key, username);
+      
+      // Then update state based on platform
+      switch (selectedPlatform) {
+        case 'LeetCode':
+          setLcUsername(username);
+          break;
+        case 'Codeforces':
+          setCfUsername(username);
+          break;
+        case 'Codechef':
+          setCcUsername(username);
+          break;
+      }
+      
+      setModalVisible(false);
+      setSelectedPlatform(null);
+    } catch (error) {
+      console.error('Error saving username:', error);
+      Alert.alert('Error', 'Failed to save username. Please try again.');
+    }
   };
 
   const SettingSection = ({ title, children, style }) => (
@@ -157,6 +251,20 @@ export const SettingsScreen = ({ navigation, lcusername, setLcUsername, cfuserna
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <SettingSection title="Connected Accounts" style={styles.firstSection}>
+          {!lcusername && (
+            <SettingRow
+              icon={<FontAwesome5 name="code" size={18} color="#F9FAFB" />}
+              title="Add LeetCode Account"
+              right={
+                <TouchableOpacity 
+                  onPress={() => handleAddAccount('LeetCode')}
+                  style={styles.addButton}
+                >
+                  <Text style={styles.addButtonText}>Add</Text>
+                </TouchableOpacity>
+              }
+            />
+          )}
           {lcusername && (
             <SettingRow
               icon={<FontAwesome5 name="code" size={18} color="#F9FAFB" />}
@@ -179,6 +287,20 @@ export const SettingsScreen = ({ navigation, lcusername, setLcUsername, cfuserna
               }
             />
           )}
+          {!cfusername && (
+            <SettingRow
+              icon={<FontAwesome5 name="code" size={18} color="#F9FAFB" />}
+              title="Add Codeforces Account"
+              right={
+                <TouchableOpacity 
+                  onPress={() => handleAddAccount('Codeforces')}
+                  style={styles.addButton}
+                >
+                  <Text style={styles.addButtonText}>Add</Text>
+                </TouchableOpacity>
+              }
+            />
+          )}
           {cfusername && (
             <SettingRow
               icon={<FontAwesome5 name="code" size={18} color="#F9FAFB" />}
@@ -198,6 +320,20 @@ export const SettingsScreen = ({ navigation, lcusername, setLcUsername, cfuserna
                     <FontAwesome5 name="trash" size={16} color="#EF4444" />
                   </TouchableOpacity>
                 </View>
+              }
+            />
+          )}
+          {!ccusername && (
+            <SettingRow
+              icon={<FontAwesome5 name="code" size={18} color="#F9FAFB" />}
+              title="Add Codechef Account"
+              right={
+                <TouchableOpacity 
+                  onPress={() => handleAddAccount('Codechef')}
+                  style={styles.addButton}
+                >
+                  <Text style={styles.addButtonText}>Add</Text>
+                </TouchableOpacity>
               }
             />
           )}
@@ -301,6 +437,15 @@ export const SettingsScreen = ({ navigation, lcusername, setLcUsername, cfuserna
           />
         </SettingSection>
       </ScrollView>
+      <AddAccountModal
+        visible={modalVisible}
+        platform={selectedPlatform}
+        onClose={() => {
+          setModalVisible(false);
+          setSelectedPlatform(null);
+        }}
+        onSubmit={handleSubmitUsername}
+      />
     </SafeAreaView>
   );
 };
@@ -461,5 +606,71 @@ const styles = StyleSheet.create({
   timeUnit: {
     fontSize: 14,
     color: '#9CA3AF',
+  },
+  addButton: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  addButtonText: {
+    color: '#F9FAFB',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#2A2B2F',
+    borderRadius: 16,
+    padding: 20,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#F9FAFB',
+    marginBottom: 16,
+  },
+  modalInput: {
+    backgroundColor: '#1F2937',
+    borderRadius: 8,
+    padding: 12,
+    color: '#F9FAFB',
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+  },
+  modalButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: '#374151',
+  },
+  modalButtonSubmit: {
+    backgroundColor: '#2563EB',
+  },
+  modalButtonTextCancel: {
+    color: '#F9FAFB',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  modalButtonTextSubmit: {
+    color: '#F9FAFB',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

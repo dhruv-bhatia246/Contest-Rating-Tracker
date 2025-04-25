@@ -19,18 +19,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const LEETCODE_QUERY = `
-  query {
-    allContests {
-      title
-      startTime
-      duration
-      status
-    }
-  }`;
-
-const LEETCODE_API_ENDPOINT = 'https://leetcode.com/graphql';
-
 const screenWidth = Dimensions.get("window").width;
 
 export const ContestScreen = (props) => {
@@ -204,8 +192,6 @@ export const ContestScreen = (props) => {
     switch (platform) {
       case 'Codeforces':
         return '#FF3C32';
-      case 'LeetCode':
-        return '#FFA116';
       case 'CodeChef':
         return '#5B4638';
       default:
@@ -214,7 +200,7 @@ export const ContestScreen = (props) => {
   };
 
   const fetchAllContests = async () => {
-    let cfContests = [], lcContests = [], ccContests = [];
+    let cfContests = [], ccContests = [];
 
     try {
       // Fetch Codeforces contests
@@ -236,42 +222,6 @@ export const ContestScreen = (props) => {
         }));
       } catch (cfError) {
         console.error('Codeforces fetch error:', cfError);
-      }
-
-      // Fetch LeetCode contests
-      try {
-        const lcResponse = await fetch(LEETCODE_API_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'User-Agent': 'Rating Tracker App'
-          },
-          body: JSON.stringify({
-            query: LEETCODE_QUERY
-          }),
-        });
-        if (!lcResponse.ok) {
-          console.error('LeetCode API error:', lcResponse.status, lcResponse.statusText);
-          throw new Error(`LeetCode API error: ${lcResponse.status}`);
-        }
-        const lcText = await lcResponse.text();
-        if (lcText.includes('<!DOCTYPE html>')) {
-          console.error('LeetCode returned HTML instead of JSON. Response:', lcText.substring(0, 200));
-          throw new Error('LeetCode API unavailable');
-        }
-        const lcData = JSON.parse(lcText);
-        if (lcData?.data?.allContests) {
-          lcContests = lcData.data.allContests.map(contest => ({
-            ...contest,
-            platform: 'LeetCode',
-            startTimeSeconds: new Date(contest.startTime).getTime() / 1000,
-            durationSeconds: contest.duration * 60,
-            name: contest.title
-          }));
-        }
-      } catch (lcError) {
-        console.error('LeetCode fetch error:', lcError);
       }
 
       // Fetch CodeChef contests using their proxy API
@@ -301,7 +251,7 @@ export const ContestScreen = (props) => {
       }
 
       // Combine all available contests
-      const allContests = [...cfContests, ...lcContests, ...ccContests];
+      const allContests = [...cfContests, ...ccContests];
       
       if (allContests.length === 0) {
         throw new Error('Could not fetch contests from any platform. Please try again later.');
@@ -338,9 +288,6 @@ export const ContestScreen = (props) => {
       // Get platform-specific contest link
       let contestLink = '';
       switch (platform) {
-        case 'LeetCode':
-          contestLink = `https://leetcode.com/contest/${contest.titleSlug}`;
-          break;
         case 'Codeforces':
           contestLink = `https://codeforces.com/contest/${contest.id}`;
           break;
@@ -432,8 +379,6 @@ export const ContestScreen = (props) => {
 
   const getContestLink = (contest) => {
     switch (contest.platform) {
-      case 'LeetCode':
-        return `https://leetcode.com/contest/${contest.titleSlug}`;
       case 'Codeforces':
         return `https://codeforces.com/contest/${contest.id}`;
       case 'CodeChef':

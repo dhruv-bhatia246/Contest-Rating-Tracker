@@ -199,6 +199,12 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
 
   const fetchUserName = async () => {
     try {
+      // If we already have a username from settings, use that
+      if (lcusername) {
+        return;
+      }
+      
+      // Only check AsyncStorage if we don't have a username
       const value = await AsyncStorage.getItem('lcusername')
       if (value !== null) {
         await setLcUsername(value);
@@ -211,13 +217,15 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
   }
 
   useEffect(() => {
-    fetchUserName().then(() => {
-      if (lcusername !== undefined) {
-        setLoading(true);
-        fetchData();
-      }
-    });
-  }, [lcusername])
+    // Only fetch username if we don't have one
+    if (!lcusername) {
+      fetchUserName();
+    } else {
+      // If we have a username, directly fetch data
+      setLoading(true);
+      fetchData();
+    }
+  }, [lcusername]);
 
   function ProgressRing() {
     const data = {
@@ -287,156 +295,166 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
       );
     }
 
-    for (let i = 0; i < lcData?.userContestRankingHistory?.length; i++) {
-      if (lcData?.userContestRankingHistory[i]?.attended === true) {
-        contestRatings.push(lcData?.userContestRankingHistory[i].rating);
-      }
+    if (!lcData) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            No data available. Please check your username and try again.
+          </Text>
+        </View>
+      );
     }
-    for (let i = 1; i < lcData?.matchedUser?.submitStats?.acSubmissionNum?.length; i++) {
-      quesStats.push(lcData?.matchedUser?.submitStats?.acSubmissionNum[i]?.count);
+
+    // Process data for display
+    const contestHistory = lcData.userContestRankingHistory || [];
+    contestRatings = contestHistory.map(contest => contest.rating);
+    
+    // Calculate problem solving percentages
+    if (lcData.matchedUser?.submitStats?.acSubmissionNum) {
+      const submissions = lcData.matchedUser.submitStats.acSubmissionNum;
+      const totalQuestions = lcData.allQuestionsCount;
+      
+      submissions.forEach(sub => {
+        const total = totalQuestions.find(q => q.difficulty === sub.difficulty)?.count || 0;
+        const solved = sub.count || 0;
+        const percentage = total > 0 ? solved / total : 0;
+        
+        if (sub.difficulty === "Hard") percData[0] = percentage;
+        else if (sub.difficulty === "Medium") percData[1] = percentage;
+        else if (sub.difficulty === "Easy") percData[2] = percentage;
+      });
     }
-    for (let i = 1; i < lcData?.allQuestionsCount?.length; i++) {
-      allQuesStats.push(lcData?.allQuestionsCount[i]?.count);
-    }
-    for (let i = 1; i <= 3; i++) {
-      if (percData.length < 3 && quesStats.length >= 3 && allQuesStats.length >= 3) {
-        percData.push(quesStats[2] / allQuesStats[2]);
-        percData.push(quesStats[1] / allQuesStats[1]);
-        percData.push(quesStats[0] / allQuesStats[0]);
-      }
-    }
-    return <View style={{ marginTop: 30, marginBottom: 20, alignItems: 'center', width: '100%' }}>
-      <View style={styles.avatarContainer}>
-        <Avatar size="large" rounded source={lcData?.titlePhoto ? { uri: lcData?.matchedUser.profile.userAvatar } : userIcon} />
-      </View>
-      {lcData?.matchedUser.username ? <View><Text style={styles.username}>Hello {lcData?.matchedUser.username}</Text></View> : null}
-      <View><Text style={styles.welcomeText}>Welcome Back!</Text></View>
-      
-      {contestRatings[contestRatings.length - 1] ? 
-        <GradientCard gradientColors={['#FF3C32', '#FF6B52']}>
-          <Text style={styles.statText}>Rating: {Math.round(contestRatings[contestRatings.length - 1])}</Text>
-        </GradientCard>
-      : null}
-      
-      {lcData?.matchedUser.profile.ranking ? 
-        <GradientCard gradientColors={['#FF3C32', '#FF8652']}>
-          <Text style={styles.statText}>Rank: {lcData?.matchedUser.profile.ranking}</Text>
-        </GradientCard>
-      : null}
-      
-      {lcData?.userContestRanking?.topPercentage ? 
-        <GradientCard gradientColors={['#FF3C32', '#FFA152']}>
-          <Text style={styles.statText}>Top: {lcData?.userContestRanking?.topPercentage}%</Text>
-        </GradientCard>
-      : null}
-      
-      <View>{ProgressRing()}</View>
-      
-      {lcData?.userContestRanking?.topPercentage ? 
-        <GradientCard gradientColors={['#FF3C32', '#FF6B52']} style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Rating History</Text>
-          <VictoryChart
-            theme={VictoryTheme.material}
-            width={screenWidth - 40}
-            height={220}
-            padding={{ top: 10, bottom: 40, left: 50, right: 20 }}
-            containerComponent={
-              <VictoryZoomVoronoiContainer
-                labels={({ datum }) => `Contest #${datum.x}\nRating: ${Math.round(datum.y)}`}
-                zoomDimension="x"
-                minimumZoom={{ x: 1, y: 1 }}
-                downsample={10}
-                labelComponent={
-                  <VictoryTooltip
-                    flyoutStyle={{
-                      stroke: "#FF3C32",
-                      fill: "rgba(255, 60, 50, 0.9)",
-                    }}
-                    style={{ fill: "white" }}
-                    flyoutPadding={8}
-                  />
-                }
-              />
-            }
-            domainPadding={{ y: 20 }}
-          >
-            <VictoryAxis
-              dependentAxis
-              style={{
-                axis: { stroke: "rgba(255,255,255,0.1)" },
-                tickLabels: { fill: "rgba(255,255,255,0.6)", fontSize: 12 },
-                grid: { stroke: "rgba(255,255,255,0.05)" }
-              }}
+
+    return (
+      <View style={styles.contentContainer}>
+        <View style={styles.profileContainer}>
+          <View style={styles.avatarContainer}>
+            <Avatar 
+              size="large" 
+              rounded 
+              source={lcData.matchedUser?.profile?.userAvatar ? { uri: lcData.matchedUser.profile.userAvatar } : userIcon}
             />
-            <VictoryAxis
-              style={{
-                axis: { stroke: "rgba(255,255,255,0.1)" },
-                tickLabels: { fill: "rgba(255,255,255,0.6)", fontSize: 12 },
-                grid: { stroke: "rgba(255,255,255,0.05)" }
-              }}
-            />
-            <VictoryLine
-              animate={{
-                duration: 1000,
-                onLoad: { duration: 500 },
-                easing: "cubic"
-              }}
-              style={{
-                data: { 
-                  stroke: "#FF3C32",
-                  strokeWidth: 2,
-                }
-              }}
-              data={contestRatings.map((rating, index) => ({
-                x: index + 1,
-                y: rating
-              }))}
-            />
-            <VictoryScatter
-              animate={{
-                duration: 1000,
-                onLoad: { duration: 500 },
-                easing: "cubic"
-              }}
-              data={contestRatings.map((rating, index) => ({
-                x: index + 1,
-                y: rating
-              }))}
-              size={4}
-              style={{
-                data: {
-                  fill: "#1A1B1E",
-                  stroke: "#FF3C32",
-                  strokeWidth: 2
-                }
-              }}
-            />
-          </VictoryChart>
+          </View>
+          <Text style={styles.username}>Hello {lcusername}</Text>
+          <Text style={styles.welcomeText}>Welcome Back!</Text>
           
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Highest</Text>
-              <Text style={styles.statValue}>
-                {Math.max(...contestRatings)}
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Average</Text>
-              <Text style={styles.statValue}>
-                {Math.round(contestRatings.reduce((a, b) => a + b, 0) / contestRatings.length)}
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Contests</Text>
-              <Text style={styles.statValue}>
-                {contestRatings.length}
-              </Text>
+          <View style={styles.statsBox}>
+            <Text style={styles.statText}>
+              Rating: {lcData.userContestRanking?.rating?.toFixed(0) || 'N/A'}
+            </Text>
+          </View>
+          
+          <View style={styles.statsBox}>
+            <Text style={styles.statText}>
+              Rank: {lcData.userContestRanking?.globalRanking?.toLocaleString() || 'N/A'}
+            </Text>
+          </View>
+
+          <View style={styles.statsBox}>
+            <Text style={styles.statText}>
+              Top: {lcData.userContestRanking?.topPercentage?.toFixed(2)}%
+            </Text>
+          </View>
+        </View>
+
+        {ProgressRing()}
+
+        {contestRatings.length > 0 && (
+          <View style={styles.chartContainer}>
+            <Text style={styles.chartTitle}>Rating History</Text>
+            <VictoryChart
+              theme={VictoryTheme.material}
+              width={screenWidth - 40}
+              height={220}
+              padding={{ top: 10, bottom: 40, left: 50, right: 20 }}
+              containerComponent={
+                <VictoryZoomVoronoiContainer
+                  labels={({ datum }) => `Contest #${datum.x}\nRating: ${Math.round(datum.y)}`}
+                  zoomDimension="x"
+                  minimumZoom={{ x: 1, y: 1 }}
+                  downsample={10}
+                  labelComponent={
+                    <VictoryTooltip
+                      flyoutStyle={{
+                        stroke: "#FF3C32",
+                        fill: "rgba(255, 60, 50, 0.9)",
+                      }}
+                      style={{ fill: "white" }}
+                      flyoutPadding={8}
+                    />
+                  }
+                />
+              }
+              domainPadding={{ y: 20 }}
+            >
+              <VictoryAxis
+                dependentAxis
+                style={{
+                  axis: { stroke: "rgba(255,255,255,0.1)" },
+                  tickLabels: { fill: "rgba(255,255,255,0.6)", fontSize: 12 },
+                  grid: { stroke: "rgba(255,255,255,0.05)" }
+                }}
+              />
+              <VictoryAxis
+                style={{
+                  axis: { stroke: "rgba(255,255,255,0.1)" },
+                  tickLabels: { fill: "rgba(255,255,255,0.6)", fontSize: 12 },
+                  grid: { stroke: "rgba(255,255,255,0.05)" }
+                }}
+              />
+              <VictoryLine
+                data={contestRatings.map((rating, index) => ({
+                  x: index + 1,
+                  y: rating
+                }))}
+                style={{
+                  data: { 
+                    stroke: "#FF3C32",
+                    strokeWidth: 2,
+                  }
+                }}
+              />
+              <VictoryScatter
+                data={contestRatings.map((rating, index) => ({
+                  x: index + 1,
+                  y: rating
+                }))}
+                size={4}
+                style={{
+                  data: {
+                    fill: "#1A1B1E",
+                    stroke: "#FF3C32",
+                    strokeWidth: 2
+                  }
+                }}
+              />
+            </VictoryChart>
+
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Highest</Text>
+                <Text style={styles.statValue}>
+                  {Math.max(...contestRatings)}
+                </Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Average</Text>
+                <Text style={styles.statValue}>
+                  {Math.round(contestRatings.reduce((a, b) => a + b, 0) / contestRatings.length)}
+                </Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Contests</Text>
+                <Text style={styles.statValue}>
+                  {contestRatings.length}
+                </Text>
+              </View>
             </View>
           </View>
-        </GradientCard> 
-      : null}
-    </View>
-  }
+        )}
+      </View>
+    );
+  };
 
   const data = {
     labels: ["Hard", "Medium", "Easy"],
@@ -463,51 +481,60 @@ export const LeetcodeScreen = ({ navigation, lcusername, setLcUsername }) => {
     },
   }
 
+  const handleDialogSubmit = async (inputText) => {
+    if (!inputText.trim()) {
+      Alert.alert('Error', 'Username cannot be empty');
+      return;
+    }
+    setShowDialog(false);
+    await AsyncStorage.setItem('lcusername', inputText);
+    await setLcUsername(inputText);
+  };
+
+  const handleDialogClose = () => {
+    if (lcusername) {
+      setShowDialog(false);
+    } else {
+      Alert.alert('Username Required', 'Please enter a valid username!');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* {showDialog && <DialogInput isDialogVisible={showDialog}
-        title={"Enter LeetCode Username"}
-        hintInput={"Type Here"}
-        submitInput={async (inputText) => {
-          await setShowDialog(false);
-          await AsyncStorage.setItem('lcusername', inputText)
-          await setLcUsername(inputText)
-        }}
-        closeDialog={() => {
-          if (lcusername !== undefined) setShowDialog(false)
-          else Alert.alert('Username Required', 'Please enter a valid username!');
-        }}>
-      </DialogInput>} */}
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false} 
-        contentContainerStyle={styles.contentContainer}
-        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <CustomRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {getData()}
       </ScrollView>
+      <DialogInput
+        isDialogVisible={showDialog}
+        title="LeetCode Username"
+        message="Please enter your LeetCode username"
+        hintInput="Username"
+        submitInput={handleDialogSubmit}
+        closeDialog={handleDialogClose}
+      />
     </SafeAreaView>
-  )
-}
-
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1A1B1E',
+  },
+  scrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
   },
   contentContainer: {
     width: '100%',
     alignItems: 'center',
-    flexGrow: 1,
-    minHeight: '100%',
-  },
-  scrollView: {
-    width: '100%',
+    paddingVertical: 30,
   },
   profileContainer: {
     alignItems: 'center',
@@ -533,6 +560,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 20,
   },
+  statsBox: {
+    backgroundColor: '#2A2B2F',
+    borderRadius: 16,
+    padding: 16,
+    margin: 8,
+    width: screenWidth - 40,
+    shadowColor: "#FF3C32",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 60, 50, 0.3)',
+  },
   statText: {
     color: 'white',
     fontSize: 20,
@@ -540,6 +581,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   chartContainer: {
+    backgroundColor: '#2A2B2F',
+    borderRadius: 16,
+    padding: 16,
+    margin: 8,
+    shadowColor: "#FF3C32",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
     width: '100%',
     maxWidth: screenWidth - 32,
     alignItems: 'center',
@@ -590,8 +640,8 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     backgroundColor: '#FF3C32',
-    padding: 15,
-    borderRadius: 5,
+    padding: 16,
+    borderRadius: 8,
     marginTop: 20,
   },
   retryButtonText: {
@@ -600,4 +650,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-})
+});

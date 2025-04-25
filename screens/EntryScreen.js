@@ -512,6 +512,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'center',
     padding: 20,
+    // paddingTop: 0,
     backgroundColor: '#1A1B1E',
   },
   title: {
@@ -536,6 +537,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    marginTop: -10,
   },
   checkboxContainer: {
     flexDirection: 'column',
