@@ -1,6 +1,8 @@
 // metro.config.js
-module.exports = {
-  resolver: {
-    sourceExts: ['jsx', 'js', 'ts', 'tsx', 'json'],
-  },
-};
+const { getDefaultConfig } = require('@expo/metro-config');
+
+const config = getDefaultConfig(__dirname);
+
+config.resolver.sourceExts = ['jsx', 'js', 'ts', 'tsx', 'json'];
+
+module.exports = config;
