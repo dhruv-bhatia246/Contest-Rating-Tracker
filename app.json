@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Rating Tracker",
+    "slug": "Rating-Tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/startscreen.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1b1b21"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.ratingTracker.ratingTracker"
+    },
+    "web": {
+      "favicon": "./assets/logo.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3375cf41-739e-4a7b-bee7-24e9988365f0"
+      }
+    }
+  }
+}

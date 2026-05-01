@@ -1,0 +1,64 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ThemeContext = createContext();
+
+const themes = {
+  dark: {
+    mode: 'dark',
+    background: '#0d0d12',
+    surface: '#14162a',
+    card: '#1a1d35',
+    textPrimary: '#f1f3f9',
+    textSecondary: '#8b8fa6',
+    border: '#262a40',
+    accent: '#7c6fff',
+    accentSoft: 'rgba(124,111,255,0.15)',
+    error: '#ff5252',
+    skeleton: '#22273b',
+    shadow: 'transparent',
+    cardGradientStart: '#1e2140',
+    cardGradientEnd: '#151830',
+  },
+  light: {
+    mode: 'light',
+    background: '#f5f6fa',
+    surface: '#eceef5',
+    card: '#ffffff',
+    textPrimary: '#1a1d2e',
+    textSecondary: '#5f6580',
+    border: '#e0e3ef',
+    accent: '#5b4cdb',
+    accentSoft: 'rgba(91,76,219,0.12)',
+    error: '#ef4444',
+    skeleton: '#e5e7eb',
+    shadow: '#00000012',
+    cardGradientStart: '#ffffff',
+    cardGradientEnd: '#f0f1fa',
+  },
+};
+
+export const ThemeProvider = ({ children }) => {
+  const [mode, setMode] = useState('dark');
+
+  useEffect(() => {
+    AsyncStorage.getItem('appTheme').then(savedTheme => {
+      if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+        setMode(savedTheme);
+      }
+    });
+  }, []);
+
+  const changeTheme = async (selectedMode) => {
+    setMode(selectedMode);
+    await AsyncStorage.setItem('appTheme', selectedMode);
+  };
+
+  return (
+    <ThemeContext.Provider value={{ mode, setMode: changeTheme, colors: themes[mode], accent: themes[mode].accent }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+export const useTheme = () => useContext(ThemeContext);
