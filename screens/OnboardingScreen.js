@@ -80,7 +80,7 @@ export const OnboardingScreen = ({ onComplete }) => {
           <Animated.View entering={FadeInDown.duration(600).delay(250)}>
             <Text style={[styles.welcomeTitle, { color: colors.textPrimary }]}>Rating Tracker</Text>
             <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
-              Track your competitive programming ratings across LeetCode, Codeforces, and CodeChef all in one place.
+              Track your competitive programming ratings across coding platforms all in one place.
             </Text>
           </Animated.View>
           <Animated.View entering={FadeInUp.duration(600).delay(500)} style={styles.bottomAction}>
