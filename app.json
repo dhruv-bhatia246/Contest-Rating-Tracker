@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Rating Tracker",
-    "slug": "Rating-Tracker",
+    "name": "CodeRank",
+    "slug": "CodeRank",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
