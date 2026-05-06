@@ -18,7 +18,11 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ratingTracker.ratingTracker",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,11 +36,12 @@
     },
     "extra": {
       "eas": {
-        "projectId": "3f9ea699-5f99-44fb-bec3-0c154d1d0085"
+        "projectId": "ef1c3fe3-b880-4afa-be11-ba8b57f86fc9"
       }
     },
     "cli": {
       "appVersionSource": "local"
-    }
+    },
+    "owner": "dhruv_bhatia"
   }
 }
