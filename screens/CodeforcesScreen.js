@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Dimensions, TextInput, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Dimensions, TextInput, Modal, Image, Platform } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -209,7 +209,7 @@ export const CodeforcesScreen = () => {
       >
         {/* Header Card */}
         <Animated.View entering={FadeInDown.duration(500).delay(100)}>
-        <LinearGradient colors={['#4fc3f7' + '18', colors.cardGradientEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.headerCard, { borderWidth: 1, borderColor: '#4fc3f7' + '25', shadowColor: '#4fc3f7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 4 }]}>
+        <LinearGradient colors={['#4fc3f7' + '18', colors.cardGradientEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.headerCard, { borderWidth: 1, borderColor: '#4fc3f7' + '25', ...Platform.select({ ios: { shadowColor: '#4fc3f7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12 }, android: { elevation: 4 } }) }]}>
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
               {cfData?.titlePhoto ? (
@@ -250,7 +250,7 @@ export const CodeforcesScreen = () => {
 
         {/* Last Contest */}
         {lastContest && (
-          <Animated.View entering={FadeInDown.duration(500).delay(250)} style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8, elevation: 3 }]}>
+          <Animated.View entering={FadeInDown.duration(500).delay(250)} style={[styles.card, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Last Contest</Text>
             <Text style={[styles.contestName, { color: colors.textSecondary }]} numberOfLines={2}>{lastContest.name}</Text>
             <View style={styles.deltaRow}>
@@ -268,7 +268,7 @@ export const CodeforcesScreen = () => {
 
         {/* Rating Chart */}
         {ratings.length > 1 && (
-          <Animated.View entering={FadeInDown.duration(500).delay(400)} style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8, elevation: 3 }]}>
+          <Animated.View entering={FadeInDown.duration(500).delay(400)} style={[styles.card, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Rating History</Text>
             <LineChart
               data={ratings}

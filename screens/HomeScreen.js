@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Dimensions, FlatList,
+  ActivityIndicator, RefreshControl, Dimensions, FlatList, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -330,7 +330,7 @@ export const HomeScreen = ({ navigation }) => {
                     colors={[color + '18', colors.cardGradientEnd]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={[styles.ratingCard, { borderWidth: 1, borderColor: color + '25', shadowColor: color, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 3 }]}
+                    style={[styles.ratingCard, { borderWidth: 1, borderColor: color + '25', ...Platform.select({ ios: { shadowColor: color, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 8 }, android: { elevation: 3 } }) }]}
                   >
                     <View style={styles.ratingCardHeader}>
                       <View style={[styles.platformBadge, { backgroundColor: color + '20' }]}>
@@ -459,7 +459,7 @@ export const HomeScreen = ({ navigation }) => {
 
           return (
             <Animated.View key={contest.id} entering={FadeInDown.duration(400).delay(450 + index * 60)}>
-              <View style={[styles.contestCard, { backgroundColor: colors.card, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 6, elevation: 2 }]}>
+              <View style={[styles.contestCard, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 6 }, android: { elevation: 2 } }) }]}>
                 <View style={styles.contestLeft}>
                   <View style={[styles.contestDot, { backgroundColor: pColor }]} />
                   <View style={styles.contestInfo}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Dimensions, Linking, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Dimensions, Linking, Modal, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -224,7 +224,7 @@ export const SettingsScreen = ({ navigation }) => {
 
         {/* Appearance Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>APPEARANCE</Text>
-        <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8, elevation: 3 }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
           <View style={styles.platformRow}>
             <View style={styles.platformLeft}>
               <View style={[styles.platformIcon, { backgroundColor: colors.accent + '20' }]}>
@@ -248,7 +248,7 @@ export const SettingsScreen = ({ navigation }) => {
 
         {/* Notifications Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>NOTIFICATIONS</Text>
-        <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8, elevation: 3 }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
           <View style={styles.platformRow}>
             <View style={styles.platformLeft}>
               <View style={[styles.platformIcon, { backgroundColor: colors.accent + '20' }]}>
@@ -286,7 +286,7 @@ export const SettingsScreen = ({ navigation }) => {
 
         {/* Platforms Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>PLATFORMS</Text>
-        <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8, elevation: 3 }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
           {PLATFORMS.map((platform, index) => (
             <View key={platform.key}>
               <View style={styles.platformRow}>
@@ -315,7 +315,7 @@ export const SettingsScreen = ({ navigation }) => {
 
         {/* Reset Usernames */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>USERNAMES</Text>
-        <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8, elevation: 3 }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
           {PLATFORMS.filter(p => enabledPlatforms[p.key]).map((platform, index, arr) => (
             <View key={platform.key}>
               <TouchableOpacity

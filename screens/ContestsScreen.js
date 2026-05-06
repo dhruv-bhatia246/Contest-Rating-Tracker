@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -208,7 +208,7 @@ export const ContestsScreen = () => {
 
     return (
       <Animated.View entering={FadeInDown.duration(400).delay(Math.min(index * 60, 300))}>
-        <View style={[styles.contestCard, { backgroundColor: colors.card, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8, elevation: 3 }]}>
+        <View style={[styles.contestCard, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
           <View style={styles.contestHeader}>
             <View style={[styles.platformBadge, { backgroundColor: platformColor + '20' }]}>
               <Ionicons name={PLATFORM_ICONS[item.platform]} size={14} color={platformColor} />
