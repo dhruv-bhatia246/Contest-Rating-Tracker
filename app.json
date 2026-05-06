@@ -32,8 +32,11 @@
     },
     "extra": {
       "eas": {
-        "projectId": "3375cf41-739e-4a7b-bee7-24e9988365f0"
+        "projectId": "3f9ea699-5f99-44fb-bec3-0c154d1d0085"
       }
+    },
+    "cli": {
+      "appVersionSource": "local"
     }
   }
 }
