@@ -22,11 +22,8 @@ function RatingsScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { colors, accent, mode } = useTheme();
   const initialTab = route?.params?.tab || null;
-  const [enabledPlatforms, setEnabledPlatforms] = useState({
-    leetcode: true,
-    codeforces: true,
-    codechef: true,
-  });
+  const [enabledPlatforms, setEnabledPlatforms] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const loadPlatformSettings = useCallback(async () => {
     const lc = await AsyncStorage.getItem('platform_leetcode');
@@ -37,15 +34,24 @@ function RatingsScreen({ navigation, route }) {
       codeforces: cf !== 'false',
       codechef: cc !== 'false',
     });
+    setLoading(false);
   }, []);
 
   useEffect(() => {
     loadPlatformSettings();
     const interval = setInterval(loadPlatformSettings, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadPlatformSettings]);
 
-  const enabledCount = Object.values(enabledPlatforms).filter(Boolean).length;
+  const enabledCount = enabledPlatforms ? Object.values(enabledPlatforms).filter(Boolean).length : 0;
+
+  if (loading || !enabledPlatforms) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={accent} />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -95,7 +101,7 @@ function RatingsScreen({ navigation, route }) {
             tabBarIndicatorStyle: { backgroundColor: accent, height: 3, borderRadius: 2 },
             tabBarItemStyle: { paddingHorizontal: 4 },
             lazy: true,
-            lazyPlaceholder: () => <View style={{ flex: 1, backgroundColor: colors.background }} />,
+            lazyPlaceholder: () => <View style={{ flex: 1, backgroundColor: colors.background }} />, 
             sceneStyle: { backgroundColor: colors.background },
             swipeEnabled: true,
           }}

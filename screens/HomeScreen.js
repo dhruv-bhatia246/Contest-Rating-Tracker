@@ -433,7 +433,11 @@ export const HomeScreen = ({ navigation }) => {
       <Animated.View entering={FadeInDown.duration(500).delay(400)}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>UPCOMING CONTESTS</Text>
-          <TouchableOpacity onPress={() => navigation.push('Ratings', { tab: 'Contests' })}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Ratings', { tab: 'Contests' })}
+            disabled={loading}
+            style={loading ? { opacity: 0.5 } : null}
+          >
             <Text style={[styles.seeAll, { color: accent }]}>See all</Text>
           </TouchableOpacity>
         </View>
