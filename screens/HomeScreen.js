@@ -492,37 +492,37 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scrollContent: { padding: 20, paddingBottom: 40 },
 
-  sectionTitle: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, marginBottom: 14 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', letterSpacing: 1.2, marginBottom: 14 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  seeAll: { fontSize: 14, fontWeight: '600' },
+  seeAll: { fontSize: 15, fontWeight: '600' },
 
   ratingCard: { borderRadius: 16, padding: 18 },
   ratingCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   platformBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  platformBadgeText: { fontSize: 13, fontWeight: '600', marginLeft: 6 },
+  platformBadgeText: { fontSize: 15, fontWeight: '600', marginLeft: 6 },
 
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   gridItem: { width: '50%', paddingVertical: 8, alignItems: 'center' },
-  gridValue: { fontSize: 22, fontWeight: '800' },
-  gridLabel: { fontSize: 11, marginTop: 2 },
+  gridValue: { fontSize: 24, fontWeight: '800' },
+  gridLabel: { fontSize: 13, marginTop: 2 },
 
   dotsContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, marginBottom: 4 },
   dot: { width: 8, height: 8, borderRadius: 4, marginHorizontal: 4 },
 
   noUserBanner: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 10, marginTop: 14, gap: 8 },
-  noUserText: { fontSize: 13, fontWeight: '500' },
+  noUserText: { fontSize: 15, fontWeight: '500' },
 
   emptyCard: { borderRadius: 16, padding: 32, alignItems: 'center', marginBottom: 12 },
-  emptyText: { fontSize: 14, marginTop: 8 },
+  emptyText: { fontSize: 15, marginTop: 8 },
 
   contestCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 14, padding: 14, marginBottom: 10 },
   contestLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 },
   contestDot: { width: 8, height: 8, borderRadius: 4, marginRight: 12 },
   contestInfo: { flex: 1 },
-  contestName: { fontSize: 14, fontWeight: '600', marginBottom: 5 },
+  contestName: { fontSize: 15, fontWeight: '600', marginBottom: 5 },
   contestMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   contestPlatformBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, gap: 4 },
-  contestPlatformText: { fontSize: 11, fontWeight: '600' },
-  contestDate: { fontSize: 12 },
-  contestDuration: { fontSize: 12, fontWeight: '500' },
+  contestPlatformText: { fontSize: 13, fontWeight: '600' },
+  contestDate: { fontSize: 14 },
+  contestDuration: { fontSize: 14, fontWeight: '500' },
 });

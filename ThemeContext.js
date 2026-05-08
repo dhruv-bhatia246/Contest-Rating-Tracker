@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ThemeContext = createContext();
@@ -38,24 +39,44 @@ const themes = {
   },
 };
 
+const getSystemMode = () => {
+  const scheme = Appearance.getColorScheme();
+  return scheme === 'light' ? 'light' : 'dark';
+};
+
 export const ThemeProvider = ({ children }) => {
+  const [selectedMode, setSelectedMode] = useState('dark');
   const [mode, setMode] = useState('dark');
 
   useEffect(() => {
-    AsyncStorage.getItem('appTheme').then(savedTheme => {
-      if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
-        setMode(savedTheme);
+    const loadTheme = async () => {
+      const savedTheme = await AsyncStorage.getItem('appTheme');
+      if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') {
+        setSelectedMode(savedTheme);
       }
-    });
+    };
+    loadTheme();
   }, []);
 
-  const changeTheme = async (selectedMode) => {
+  useEffect(() => {
+    if (selectedMode === 'system') {
+      setMode(getSystemMode());
+      const subscription = Appearance.addChangeListener(() => {
+        setMode(getSystemMode());
+      });
+      return () => subscription.remove?.();
+    }
     setMode(selectedMode);
-    await AsyncStorage.setItem('appTheme', selectedMode);
+    return undefined;
+  }, [selectedMode]);
+
+  const changeTheme = async (selected) => {
+    setSelectedMode(selected);
+    await AsyncStorage.setItem('appTheme', selected);
   };
 
   return (
-    <ThemeContext.Provider value={{ mode, setMode: changeTheme, colors: themes[mode], accent: themes[mode].accent }}>
+    <ThemeContext.Provider value={{ selectedMode, mode, setMode: changeTheme, colors: themes[mode], accent: themes[mode].accent }}>
       {children}
     </ThemeContext.Provider>
   );

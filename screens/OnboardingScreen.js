@@ -275,8 +275,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   iconCircle: { width: 110, height: 110, borderRadius: 55, justifyContent: 'center', alignItems: 'center', marginBottom: 28 },
-  welcomeTitle: { fontSize: 32, fontWeight: '800', textAlign: 'center', letterSpacing: 0.5 },
-  welcomeSubtitle: { fontSize: 16, textAlign: 'center', marginTop: 12, lineHeight: 24 },
+  welcomeTitle: { fontSize: 34, fontWeight: '800', textAlign: 'center', letterSpacing: 0.5 },
+  welcomeSubtitle: { fontSize: 17, textAlign: 'center', marginTop: 12, lineHeight: 24 },
   bottomAction: { marginTop: 48, width: '100%' },
 
   stepHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
@@ -286,8 +286,8 @@ const styles = StyleSheet.create({
   dotLine: { width: 32, height: 2, marginHorizontal: 6 },
 
   stepContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120 },
-  stepTitle: { fontSize: 26, fontWeight: '700', marginBottom: 8 },
-  stepSubtitle: { fontSize: 15, lineHeight: 22, marginBottom: 28 },
+  stepTitle: { fontSize: 28, fontWeight: '700', marginBottom: 8 },
+  stepSubtitle: { fontSize: 16, lineHeight: 22, marginBottom: 28 },
 
   platformCard: {
     flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 16,
@@ -295,18 +295,18 @@ const styles = StyleSheet.create({
   },
   platformIconCircle: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   platformInfo: { flex: 1, marginLeft: 14 },
-  platformLabel: { fontSize: 17, fontWeight: '600' },
+  platformLabel: { fontSize: 18, fontWeight: '600' },
   checkbox: { width: 28, height: 28, borderRadius: 8, borderWidth: 2, justifyContent: 'center', alignItems: 'center' },
 
   inputCard: { borderRadius: 16, padding: 18, borderWidth: 1, marginBottom: 14 },
   inputHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  inputLabel: { fontSize: 16, fontWeight: '600', marginLeft: 12 },
-  textInput: { height: 48, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, fontSize: 15 },
+  inputLabel: { fontSize: 17, fontWeight: '600', marginLeft: 12 },
+  textInput: { height: 48, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, fontSize: 16 },
 
   bottomBar: { paddingHorizontal: 20, paddingTop: 12 },
   primaryButton: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     height: 56, borderRadius: 16, gap: 8,
   },
-  primaryButtonText: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  primaryButtonText: { fontSize: 18, fontWeight: '700', color: '#fff' },
 });

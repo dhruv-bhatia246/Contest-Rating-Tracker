@@ -26,7 +26,7 @@ const REMINDER_OPTIONS = [
 
 export const SettingsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { colors, mode, setMode } = useTheme();
+  const { colors, mode, selectedMode, setMode } = useTheme();
   const [usernames, setUsernames] = useState({});
   const [enabledPlatforms, setEnabledPlatforms] = useState({});
   const [reminderMinutes, setReminderMinutes] = useState('30');
@@ -228,25 +228,52 @@ export const SettingsScreen = ({ navigation }) => {
           <View style={styles.platformRow}>
             <View style={styles.platformLeft}>
               <View style={[styles.platformIcon, { backgroundColor: colors.accent + '20' }]}>
-                <Ionicons name={mode === 'dark' ? 'moon' : 'sunny'} size={20} color={colors.accent} />
+                <Ionicons
+                  name={selectedMode === 'light' ? 'sunny' : selectedMode === 'dark' ? 'moon' : 'contrast'}
+                  size={20}
+                  color={colors.accent}
+                />
               </View>
               <View style={styles.platformInfo}>
-                <Text style={[styles.platformName, { color: colors.textPrimary }]}>Dark Mode</Text>
-                <Text style={[styles.platformUsername, { color: colors.textSecondary }]}>
-                  {mode === 'dark' ? 'On' : 'Off'}
+                <Text style={[styles.platformName, { color: colors.textPrimary }]}>Appearance</Text>
+                <Text style={[styles.platformUsername, { color: colors.textSecondary }]}> 
+                  {selectedMode === 'system'
+                    ? `System (${mode === 'dark' ? 'Dark' : 'Light'})`
+                    : selectedMode === 'dark'
+                    ? 'Dark'
+                    : 'Light'}
                 </Text>
               </View>
             </View>
-            <Switch
-              value={mode === 'dark'}
-              onValueChange={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setMode(mode === 'dark' ? 'light' : 'dark'); }}
-              trackColor={{ false: colors.surface, true: colors.accent + '40' }}
-              thumbColor={mode === 'dark' ? colors.accent : colors.textSecondary}
-            />
+          </View>
+          <View style={styles.themeOptionRow}>
+            {[
+              { key: 'light', label: 'Light' },
+              { key: 'dark', label: 'Dark' },
+              { key: 'system', label: 'System' },
+            ].map(option => (
+              <TouchableOpacity
+                key={option.key}
+                style={[
+                  styles.themeOptionButton,
+                  {
+                    backgroundColor: selectedMode === option.key ? colors.accent : colors.surface,
+                    borderColor: selectedMode === option.key ? colors.accent : colors.border,
+                  },
+                ]}
+                onPress={async () => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  await setMode(option.key);
+                }}
+              >
+                <Text style={[styles.themeOptionText, { color: selectedMode === option.key ? '#fff' : colors.textSecondary }]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        {/* Notifications Section */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>NOTIFICATIONS</Text>
         <View style={[styles.card, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
           <View style={styles.platformRow}>
@@ -302,10 +329,9 @@ export const SettingsScreen = ({ navigation }) => {
                   </View>
                 </View>
                 <Switch
+                  style={styles.switch}
                   value={enabledPlatforms[platform.key]}
                   onValueChange={() => togglePlatform(platform)}
-                  trackColor={{ false: colors.surface, true: colors.accent + '40' }}
-                  thumbColor={enabledPlatforms[platform.key] ? colors.accent : colors.textSecondary}
                 />
               </View>
               {index < PLATFORMS.length - 1 && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
@@ -348,6 +374,22 @@ export const SettingsScreen = ({ navigation }) => {
           <Text style={styles.dangerText}>Reset All Data</Text>
         </TouchableOpacity>
 
+        {/* Feedback Section */}
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>FEEDBACK</Text>
+        <TouchableOpacity
+          style={[styles.supportCard, { backgroundColor: colors.accent + '12', borderColor: colors.accent + '40' }]}
+          onPress={() => Linking.openURL('mailto:dhruv.bhatia246@gmail.com?subject=Rating%20Tracker%20Feedback')}
+        >
+          <View style={styles.supportLeft}>
+            <Ionicons name="mail" size={22} color={colors.accent} />
+            <View style={{ marginLeft: 14 }}>
+              <Text style={[styles.platformName, { color: colors.textPrimary }]}>Send Feedback</Text>
+              <Text style={[styles.platformUsername, { color: colors.textSecondary }]}>dhruv.bhatia246@gmail.com</Text>
+            </View>
+          </View>
+          <Ionicons name="open-outline" size={18} color={colors.accent} />
+        </TouchableOpacity>
+
         {/* App Info */}
         <View style={[styles.infoSection, { backgroundColor: colors.surface }]}>
           <Text style={[styles.infoText, { color: colors.textSecondary }]}>Rating Tracker v1.0.0</Text>
@@ -364,30 +406,34 @@ const styles = StyleSheet.create({
   backButton: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '700' },
   scrollContent: { paddingHorizontal: 16, paddingBottom: 40 },
-  sectionTitle: { fontSize: 12, fontWeight: '600', letterSpacing: 1, marginBottom: 10, marginTop: 8, marginLeft: 4 },
+  sectionTitle: { fontSize: 14, fontWeight: '600', letterSpacing: 1, marginBottom: 10, marginTop: 8, marginLeft: 4 },
   card: { borderRadius: 16, padding: 16, marginBottom: 20 },
-  platformRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  platformRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16 },
+  switch: { marginRight: 4 },
   platformLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   platformIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   platformInfo: { marginLeft: 14 },
-  platformName: { fontSize: 16, fontWeight: '600' },
-  platformUsername: { fontSize: 13, marginTop: 2 },
+  platformName: { fontSize: 17, fontWeight: '600' },
+  platformUsername: { fontSize: 14, marginTop: 2 },
   separator: { height: 1, marginVertical: 2 },
   resetRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14 },
   resetLeft: { flexDirection: 'row', alignItems: 'center' },
-  resetLabel: { fontSize: 15, marginLeft: 12 },
+  resetLabel: { fontSize: 16, marginLeft: 12 },
   resetRight: { flexDirection: 'row', alignItems: 'center' },
-  resetValue: { fontSize: 14 },
+  resetValue: { fontSize: 15 },
   dangerCard: { borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', marginBottom: 20, borderWidth: 1 },
   dangerText: { color: '#ff5252', fontSize: 16, fontWeight: '600', marginLeft: 12 },
   infoSection: { alignItems: 'center', marginTop: 20, paddingBottom: 20, borderRadius: 16, padding: 20 },
-  infoText: { fontSize: 14 },
-  infoSubtext: { fontSize: 12, marginTop: 4 },
+  infoText: { fontSize: 15 },
+  infoSubtext: { fontSize: 13, marginTop: 4 },
   supportCard: { borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderWidth: 1 },
   supportLeft: { flexDirection: 'row', alignItems: 'center' },
+  themeOptionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
+  themeOptionButton: { flex: 1, paddingVertical: 12, borderWidth: 1, borderRadius: 14, alignItems: 'center', marginHorizontal: 4 },
+  themeOptionText: { fontSize: 14, fontWeight: '700' },
   reminderOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4, paddingBottom: 8 },
   reminderChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
-  reminderChipText: { fontSize: 13, fontWeight: '600' },
+  reminderChipText: { fontSize: 14, fontWeight: '600' },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.7)' },
   modalContent: { width: '85%', borderRadius: 20, padding: 24 },
   modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 6 },

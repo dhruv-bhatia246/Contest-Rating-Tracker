@@ -64,7 +64,7 @@ function RatingsScreen({ navigation, route }) {
             >
               <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
-            <Text style={{ color: colors.textPrimary, fontSize: 22, fontWeight: '700', letterSpacing: 0.5 }}>
+            <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '700', letterSpacing: 0.5 }}>
               Platforms
             </Text>
           </View>
@@ -79,7 +79,7 @@ function RatingsScreen({ navigation, route }) {
       {enabledCount === 0 ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
           <Ionicons name="toggle-outline" size={48} color={colors.textSecondary} />
-          <Text style={{ color: colors.textSecondary, fontSize: 16, marginTop: 12, textAlign: 'center' }}>
+          <Text style={{ color: colors.textSecondary, fontSize: 17, marginTop: 12, textAlign: 'center' }}>
             No platforms enabled. Go to Settings to enable at least one.
           </Text>
         </View>
@@ -88,7 +88,7 @@ function RatingsScreen({ navigation, route }) {
           key={initialTab || 'default'}
           initialRouteName={initialTab || undefined}
           screenOptions={{
-            tabBarLabelStyle: { fontSize: 13, fontWeight: '600', textTransform: 'none' },
+            tabBarLabelStyle: { fontSize: 15, fontWeight: '600', textTransform: 'none' },
             tabBarActiveTintColor: accent,
             tabBarInactiveTintColor: colors.textSecondary,
             tabBarStyle: {
@@ -139,14 +139,28 @@ export default function MainScreen() {
   }
 
   return (
-    <NavigationContainer>
-      <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} />
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.background } }}>
-        <Stack.Screen name="Home" component={HomeWrapper} />
-        <Stack.Screen name="Ratings" component={RatingsScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <NavigationContainer
+        theme={{
+          dark: mode === 'dark',
+          colors: {
+            primary: colors.accent,
+            background: colors.background,
+            card: colors.card,
+            text: colors.textPrimary,
+            border: colors.border,
+            notification: colors.accent,
+          },
+        }}
+      >
+        <StatusBar barStyle={mode === 'dark' ? 'light-content' : 'dark-content'} />
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.background }, cardStyle: { backgroundColor: colors.background } }}>
+          <Stack.Screen name="Home" component={HomeWrapper} />
+          <Stack.Screen name="Ratings" component={RatingsScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </View>
   );
 }
 
@@ -159,10 +173,10 @@ function HomeWrapper({ navigation }) {
       <View style={{ paddingTop: insets.top + 10, paddingBottom: 12, paddingHorizontal: 20, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View>
-            <Text style={{ color: colors.textPrimary, fontSize: 26, fontWeight: '700', letterSpacing: 0.5 }}>
+            <Text style={{ color: colors.textPrimary, fontSize: 28, fontWeight: '700', letterSpacing: 0.5 }}>
               Rating Tracker
             </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: 15, marginTop: 2 }}>
               Track your competitive programming progress
             </Text>
           </View>
