@@ -210,7 +210,7 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>SUPPORT</Text>
         <TouchableOpacity
           style={[styles.supportCard, { backgroundColor: colors.accent + '12', borderColor: colors.accent + '40' }]}
-          onPress={() => Linking.openURL('https://paywitchai.in/dhruvbhatia')}
+          onPress={() => Linking.openURL('https://www.paywithchai.in/dhruvbhatia')}
         >
           <View style={styles.supportLeft}>
             <Ionicons name="heart" size={22} color={colors.accent} />
