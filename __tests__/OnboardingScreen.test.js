@@ -6,6 +6,9 @@ import { ThemeProvider } from '../ThemeContext';
 
 const renderWithTheme = (ui) => render(<ThemeProvider>{ui}</ThemeProvider>);
 
+// Mock fetch globally
+global.fetch = jest.fn();
+
 describe('OnboardingScreen', () => {
   let onCompleteMock;
 
@@ -13,6 +16,23 @@ describe('OnboardingScreen', () => {
     jest.clearAllMocks();
     AsyncStorage._reset();
     onCompleteMock = jest.fn();
+    // Mock fetch to return valid responses for validation
+    global.fetch.mockImplementation((url) => {
+      if (url.includes('leetcode.com')) {
+        return Promise.resolve({
+          json: () => Promise.resolve({ data: { matchedUser: { username: 'testuser' } } })
+        });
+      }
+      if (url.includes('codeforces.com')) {
+        return Promise.resolve({
+          json: () => Promise.resolve({ status: 'OK' })
+        });
+      }
+      if (url.includes('codechef.com')) {
+        return Promise.resolve({ ok: true });
+      }
+      return Promise.resolve({ ok: false });
+    });
   });
 
   it('renders welcome step initially', () => {

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Dimensions, ScrollView, KeyboardAvoidingView, Platform,
+  Dimensions, ScrollView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,6 +26,7 @@ export const OnboardingScreen = ({ onComplete }) => {
   const [step, setStep] = useState(0); // 0 = welcome, 1 = select platforms, 2 = enter usernames
   const [selectedPlatforms, setSelectedPlatforms] = useState({});
   const [usernames, setUsernames] = useState({});
+  const [validating, setValidating] = useState(false);
 
   const togglePlatform = (key) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -49,18 +50,59 @@ export const OnboardingScreen = ({ onComplete }) => {
     if (step > 0) setStep(step - 1);
   };
 
-  const handleFinish = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-    for (const p of PLATFORMS) {
-      const enabled = !!selectedPlatforms[p.key];
-      await AsyncStorage.setItem(p.enableKey, String(enabled));
-      if (enabled && usernames[p.key]?.trim()) {
-        await AsyncStorage.setItem(p.storageKey, usernames[p.key].trim());
-      }
+  const validateUsername = async (platform, username) => {
+    if (platform.key === 'leetcode') {
+      const res = await fetch('https://leetcode.com/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: `{ matchedUser(username: "${username}") { username } }` }),
+      });
+      const json = await res.json();
+      return !!json?.data?.matchedUser;
     }
-    await AsyncStorage.setItem('onboarding_done', 'true');
-    onComplete();
+    if (platform.key === 'codeforces') {
+      const res = await fetch(`https://codeforces.com/api/user.info?handles=${username}`);
+      const json = await res.json();
+      return json?.status === 'OK';
+    }
+    if (platform.key === 'codechef') {
+      const res = await fetch(`https://www.codechef.com/users/${username}`);
+      return res.ok;
+    }
+    return true;
+  };
+
+  const handleFinish = async () => {
+    setValidating(true);
+    try {
+      // Validate all usernames
+      for (const p of enabledPlatforms) {
+        const username = usernames[p.key]?.trim();
+        if (username) {
+          const valid = await validateUsername(p, username);
+          if (!valid) {
+            Alert.alert('Invalid Username', `"${username}" was not found on ${p.label}. Please check and try again.`);
+            return;
+          }
+        }
+      }
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      for (const p of PLATFORMS) {
+        const enabled = !!selectedPlatforms[p.key];
+        await AsyncStorage.setItem(p.enableKey, String(enabled));
+        if (enabled && usernames[p.key]?.trim()) {
+          await AsyncStorage.setItem(p.storageKey, usernames[p.key].trim());
+        }
+      }
+      await AsyncStorage.setItem('onboarding_done', 'true');
+      onComplete();
+    } catch (e) {
+      Alert.alert('Error', 'Could not validate usernames. Check your network and try again.');
+    } finally {
+      setValidating(false);
+    }
   };
 
   const enabledPlatforms = PLATFORMS.filter(p => selectedPlatforms[p.key]);
@@ -211,12 +253,18 @@ export const OnboardingScreen = ({ onComplete }) => {
 
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
         <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: allUsernamesFilled ? accent : colors.surface }]}
+          style={[styles.primaryButton, { backgroundColor: allUsernamesFilled && !validating ? accent : colors.surface }]}
           onPress={handleFinish}
-          disabled={!allUsernamesFilled}
+          disabled={!allUsernamesFilled || validating}
         >
-          <Text style={[styles.primaryButtonText, { color: allUsernamesFilled ? '#fff' : colors.textSecondary }]}>Finish Setup</Text>
-          <Ionicons name="checkmark-circle" size={20} color={allUsernamesFilled ? '#fff' : colors.textSecondary} />
+          {validating ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Text style={[styles.primaryButtonText, { color: allUsernamesFilled ? '#fff' : colors.textSecondary }]}>Finish Setup</Text>
+              <Ionicons name="checkmark-circle" size={20} color={allUsernamesFilled ? '#fff' : colors.textSecondary} />
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
