@@ -48,7 +48,7 @@ export const CodechefScreen = () => {
       }
 
       // Extract rating data from embedded JS
-      const ratingMatch = html.match(/var all_rating = (\[.*?\]);/);
+      const ratingMatch = html.match(/var\s+all_rating\s*=\s*(\[.*?\]);/s);
       const ratingData = ratingMatch ? JSON.parse(ratingMatch[1]) : [];
 
       // Extract current rating

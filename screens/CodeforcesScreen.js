@@ -56,7 +56,7 @@ export const CodeforcesScreen = () => {
         return;
       }
       if (ratingJson.status === 'OK') {
-        const newRating = ratingJson.result[0]?.newRating;
+        const newRating = ratingJson.result[ratingJson.result.length - 1]?.newRating;
         if (newRating && cachedRating && newRating !== cachedRating) {
           notifyRatingChange('Codeforces', cachedRating, newRating);
         }
@@ -82,7 +82,7 @@ export const CodeforcesScreen = () => {
             setHistory(JSON.parse(cached));
             const data = JSON.parse(cached);
             if (data && data.length > 0) {
-              setCachedRating(data[0].newRating);
+              setCachedRating(data[data.length - 1].newRating);
             }
             setLoading(false);
           } catch (e) {
