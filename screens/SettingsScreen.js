@@ -404,7 +404,7 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>LEGAL</Text>
         <TouchableOpacity
           style={[styles.supportCard, { backgroundColor: colors.accent + '12', borderColor: colors.accent + '40' }]}
-          onPress={() => Linking.openURL('file:///android_asset/privacy_policy.html')}
+          onPress={() => Linking.openURL('https://dhruv-bhatia246.github.io/Contest-Rating-Tracker/assets/privacy_policy.html')}
         >
           <View style={styles.supportLeft}>
             <Ionicons name="shield-checkmark" size={22} color={colors.accent} />
