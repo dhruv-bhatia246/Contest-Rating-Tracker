@@ -19,7 +19,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ratingTracker.ratingTracker",
+      "bundleIdentifier": "com.codeRank.codeRank",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -29,7 +29,7 @@
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.ratingTracker.ratingTracker"
+      "package": "com.codeRank.codeRank"
     },
     "web": {
       "favicon": "./assets/logo.png"

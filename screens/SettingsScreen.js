@@ -210,13 +210,23 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>SUPPORT</Text>
         <TouchableOpacity
           style={[styles.supportCard, { backgroundColor: colors.accent + '12', borderColor: colors.accent + '40' }]}
-          onPress={() => Linking.openURL('https://www.paywithchai.in/dhruvbhatia')}
+          onPress={async () => {
+            const upiUrl = 'upi://pay?pa=9582920829@pthdfc&pn=Dhruv Bhatia&am=0&cu=INR&tn=Support the app';
+            try {
+              await Linking.openURL(upiUrl);
+            } catch (error) {
+              Alert.alert(
+                'Unable to open UPI',
+                'It looks like your device could not open the UPI link. You can still send support manually using this UPI ID:\n\n9582920829@pthdfc'
+              );
+            }
+          }}
         >
           <View style={styles.supportLeft}>
             <Ionicons name="heart" size={22} color={colors.accent} />
             <View style={{ marginLeft: 14 }}>
               <Text style={[styles.platformName, { color: colors.textPrimary }]}>Support Us</Text>
-              <Text style={[styles.platformUsername, { color: colors.textSecondary }]}>Pay with chai 🍵</Text>
+              <Text style={[styles.platformUsername, { color: colors.textSecondary }]}>Pay via UPI</Text>
             </View>
           </View>
           <Ionicons name="open-outline" size={18} color={colors.accent} />
@@ -385,6 +395,22 @@ export const SettingsScreen = ({ navigation }) => {
             <View style={{ marginLeft: 14 }}>
               <Text style={[styles.platformName, { color: colors.textPrimary }]}>Send Feedback</Text>
               <Text style={[styles.platformUsername, { color: colors.textSecondary }]}>dhruv.bhatia246@gmail.com</Text>
+            </View>
+          </View>
+          <Ionicons name="open-outline" size={18} color={colors.accent} />
+        </TouchableOpacity>
+
+        {/* Legal Section */}
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>LEGAL</Text>
+        <TouchableOpacity
+          style={[styles.supportCard, { backgroundColor: colors.accent + '12', borderColor: colors.accent + '40' }]}
+          onPress={() => Linking.openURL('file:///android_asset/privacy_policy.html')}
+        >
+          <View style={styles.supportLeft}>
+            <Ionicons name="shield-checkmark" size={22} color={colors.accent} />
+            <View style={{ marginLeft: 14 }}>
+              <Text style={[styles.platformName, { color: colors.textPrimary }]}>Privacy Policy</Text>
+              <Text style={[styles.platformUsername, { color: colors.textSecondary }]}>Your data protection details</Text>
             </View>
           </View>
           <Ionicons name="open-outline" size={18} color={colors.accent} />
