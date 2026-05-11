@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Dimensions, FlatList, Platform,
+  ActivityIndicator, RefreshControl, FlatList, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,9 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../ThemeContext';
-
-const screenWidth = Dimensions.get('window').width;
-const CARD_WIDTH = screenWidth - 40; // 20px padding on each side
+import { useResponsive } from '../utils/responsive';
 
 const PLATFORM_COLORS = {
   leetcode: '#FFA116',
@@ -33,6 +31,8 @@ const PLATFORM_LABELS = {
 
 export const HomeScreen = ({ navigation }) => {
   const { colors, accent } = useTheme();
+  const { width, isTablet, contentPadding, maxContentWidth } = useResponsive();
+  const CARD_WIDTH = Math.min(Math.max(width - (isTablet ? 48 : 40), 320), 560);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [platforms, setPlatforms] = useState({});
@@ -283,8 +283,8 @@ export const HomeScreen = ({ navigation }) => {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.scrollContent}
+      style={[styles.container, { backgroundColor: colors.background, paddingHorizontal: contentPadding }]}
+      contentContainerStyle={[styles.scrollContent, { maxWidth: maxContentWidth, alignSelf: 'center' }]}
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent} />}
     >

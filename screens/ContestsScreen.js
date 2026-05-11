@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '../ThemeContext';
+import { useResponsive } from '../utils/responsive';
 
 const PAGE_SIZE = 10;
 
@@ -23,6 +24,7 @@ const PLATFORM_ICONS = {
 
 export const ContestsScreen = () => {
   const { colors, accent } = useTheme();
+  const { width, isTablet, contentPadding, maxContentWidth } = useResponsive();
   const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -208,7 +210,7 @@ export const ContestsScreen = () => {
 
     return (
       <Animated.View entering={FadeInDown.duration(400).delay(Math.min(index * 60, 300))}>
-        <View style={[styles.contestCard, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
+        <View style={[styles.contestCard, isTablet && styles.contestCardTablet, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
           <View style={styles.contestHeader}>
             <View style={[styles.platformBadge, { backgroundColor: platformColor + '20' }]}>
               <Ionicons name={PLATFORM_ICONS[item.platform]} size={14} color={platformColor} />
@@ -245,7 +247,7 @@ export const ContestsScreen = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingHorizontal: contentPadding }]}>
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={accent} />
@@ -260,8 +262,10 @@ export const ContestsScreen = () => {
           data={contests.slice(0, displayCount)}
           keyExtractor={(item) => item.id}
           renderItem={renderContest}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { maxWidth: maxContentWidth, alignSelf: 'center' }]}
           showsVerticalScrollIndicator={false}
+          numColumns={isTablet ? 2 : 1}
+          columnWrapperStyle={isTablet ? styles.columnWrapper : undefined}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={renderFooter}
@@ -277,7 +281,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
   emptyText: { fontSize: 17, marginTop: 12, textAlign: 'center' },
   listContent: { padding: 16, paddingBottom: 120 },
-  contestCard: { borderRadius: 16, padding: 16, marginBottom: 12 },
+  columnWrapper: { justifyContent: 'space-between', gap: 12 },
+  contestCard: { borderRadius: 16, padding: 16, marginBottom: 12, flex: 1, minWidth: 0 },
+  contestCardTablet: { maxWidth: '48%' },
   contestHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   platformBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   platformText: { fontSize: 14, fontWeight: '600', marginLeft: 5 },

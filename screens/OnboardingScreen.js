@@ -1,16 +1,15 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  Dimensions, ScrollView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
+  ScrollView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsive } from '../utils/responsive';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useTheme } from '../ThemeContext';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const PLATFORMS = [
   { key: 'leetcode', label: 'LeetCode', icon: 'code-slash', color: '#FFA116', storageKey: 'lcusername', enableKey: 'platform_leetcode' },
@@ -21,6 +20,7 @@ const PLATFORMS = [
 export const OnboardingScreen = ({ onComplete }) => {
   const insets = useSafeAreaInsets();
   const { colors, accent } = useTheme();
+  const { width, isTablet, contentPadding, maxContentWidth } = useResponsive();
   const scrollRef = useRef(null);
 
   const [step, setStep] = useState(0); // 0 = welcome, 1 = select platforms, 2 = enter usernames
@@ -112,7 +112,7 @@ export const OnboardingScreen = ({ onComplete }) => {
   // Step 0: Welcome
   if (step === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingHorizontal: contentPadding }]}>
         <View style={styles.centerContent}>
           <Animated.View entering={FadeInDown.duration(600).delay(100)}>
             <View style={[styles.iconCircle, { backgroundColor: accent + '20' }]}>
@@ -139,7 +139,7 @@ export const OnboardingScreen = ({ onComplete }) => {
   // Step 1: Select Platforms
   if (step === 1) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingHorizontal: contentPadding }]}>
         <View style={styles.stepHeader}>
           <TouchableOpacity onPress={goBack} style={[styles.backBtn, { backgroundColor: colors.card }]}>
             <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
@@ -160,14 +160,15 @@ export const OnboardingScreen = ({ onComplete }) => {
             </Text>
           </Animated.View>
 
-          {PLATFORMS.map((p, index) => {
-            const selected = !!selectedPlatforms[p.key];
-            return (
-              <Animated.View key={p.key} entering={FadeInDown.duration(400).delay(150 + index * 100)}>
+          <View style={[styles.platformGrid, isTablet && styles.platformGridTablet]}>
+            {PLATFORMS.map((p, index) => {
+              const selected = !!selectedPlatforms[p.key];
+              return (
+                <Animated.View key={p.key} entering={FadeInDown.duration(400).delay(150 + index * 100)}>
                 <TouchableOpacity
                   style={[
                     styles.platformCard,
-                    { backgroundColor: colors.card, borderColor: selected ? p.color : colors.border },
+                    { backgroundColor: colors.card, borderColor: selected ? p.color : colors.border, width: isTablet ? '48%' : '100%' },
                     selected && { borderWidth: 2 },
                   ]}
                   onPress={() => togglePlatform(p.key)}
@@ -186,6 +187,7 @@ export const OnboardingScreen = ({ onComplete }) => {
               </Animated.View>
             );
           })}
+          </View>
         </ScrollView>
 
         <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
@@ -205,7 +207,7 @@ export const OnboardingScreen = ({ onComplete }) => {
   // Step 2: Enter Usernames
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}
+      style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingHorizontal: contentPadding }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.stepHeader}>
@@ -228,9 +230,10 @@ export const OnboardingScreen = ({ onComplete }) => {
           </Text>
         </Animated.View>
 
-        {enabledPlatforms.map((p, index) => (
-          <Animated.View key={p.key} entering={FadeInDown.duration(400).delay(150 + index * 100)}>
-            <View style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.inputGrid, isTablet && styles.inputGridTablet]}>
+          {enabledPlatforms.map((p, index) => (
+            <Animated.View key={p.key} entering={FadeInDown.duration(400).delay(150 + index * 100)}>
+              <View style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border, width: isTablet ? '48%' : '100%' }]}>
               <View style={styles.inputHeader}>
                 <View style={[styles.platformIconCircle, { backgroundColor: p.color + '20' }]}>
                   <Ionicons name={p.icon} size={20} color={p.color} />
@@ -248,7 +251,8 @@ export const OnboardingScreen = ({ onComplete }) => {
               />
             </View>
           </Animated.View>
-        ))}
+          ))}
+        </View>
       </ScrollView>
 
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
@@ -285,7 +289,12 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5 },
   dotLine: { width: 32, height: 2, marginHorizontal: 6 },
 
-  stepContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120 },
+  stepContent: { paddingTop: 8, paddingBottom: 120 },
+  platformGrid: { flexDirection: 'column' },
+  platformGridTablet: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
+  inputGrid: { flexDirection: 'column' },
+  inputGridTablet: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
+  stepContent: { paddingTop: 8, paddingBottom: 120 },
   stepTitle: { fontSize: 28, fontWeight: '700', marginBottom: 8 },
   stepSubtitle: { fontSize: 16, lineHeight: 22, marginBottom: 28 },
 

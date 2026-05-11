@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LineChart } from 'react-native-chart-kit';
 import { useTheme } from '../ThemeContext';
-
-const screenWidth = Dimensions.get('window').width;
+import { useResponsive } from '../utils/responsive';
 
 const buildRatings = (data) => {
   if (!data) return [];
@@ -31,6 +30,7 @@ const buildRatings = (data) => {
 
 export const ComparisonScreen = () => {
   const { colors, accent } = useTheme();
+  const { width, isTablet, contentPadding, maxContentWidth } = useResponsive();
   const [cachedData, setCachedData] = useState({});
 
   const loadCache = useCallback(async () => {
@@ -78,8 +78,12 @@ export const ComparisonScreen = () => {
 
   const hasData = datasets.length > 0;
 
+  const chartWidth = Math.min(width - contentPadding * 2, 760);
+  const summaryGridStyle = isTablet ? { flexDirection: 'row', justifyContent: 'space-between' } : {};
+  const summaryCardStyle = isTablet ? { width: '32%', marginBottom: 0 } : { width: '100%' };
+
   return (
-    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}> 
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background, paddingHorizontal: contentPadding, maxWidth: maxContentWidth, alignSelf: 'center' }]}> 
       <View style={[styles.card, { backgroundColor: colors.card }]}> 
         <Text style={[styles.title, { color: colors.textPrimary }]}>Comparison Summary</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>A quick view of your last platform ratings and progress.</Text>
@@ -90,7 +94,7 @@ export const ComparisonScreen = () => {
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Recent Comparison</Text>
           <LineChart
             data={{ labels, datasets }}
-            width={Math.min(screenWidth - 40, 760)}
+            width={chartWidth}
             height={230}
             chartConfig={{
               backgroundColor: colors.card,
@@ -128,14 +132,14 @@ export const ComparisonScreen = () => {
         </View>
       )}
 
-      <View style={[styles.summaryGrid, { borderColor: colors.border }]}> 
+      <View style={[styles.summaryGrid, summaryGridStyle, { borderColor: colors.border }]}> 
         {platformMeta.map((platform) => {
           const data = buildRatings(cachedData[platform.key]);
           const latest = data.length > 0 ? data[data.length - 1] : '—';
           const previous = data.length > 1 ? data[data.length - 2] : null;
           const change = previous != null ? latest - previous : null;
           return (
-            <View key={platform.key} style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+            <View key={platform.key} style={[styles.summaryCard, summaryCardStyle, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
               <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>{platform.label}</Text>
               <Text style={[styles.summaryValue, { color: colors.textPrimary }]}>{latest}</Text>
               {change != null && (

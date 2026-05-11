@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Dimensions, TextInput, Modal, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, TextInput, Modal, Image, Platform } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,8 +8,7 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTheme } from '../ThemeContext';
 import { notifyRatingChange } from '../utils/notificationHelper';
-
-const screenWidth = Dimensions.get("window").width;
+import { useResponsive } from '../utils/responsive';
 
 const getRankColor = (rank) => {
   if (!rank) return '#888';
@@ -28,6 +27,7 @@ const getRankColor = (rank) => {
 
 export const CodeforcesScreen = () => {
   const { colors, accent } = useTheme();
+  const { width, contentPadding, maxContentWidth } = useResponsive();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cfData, setCfData] = useState(null);
@@ -199,12 +199,14 @@ export const CodeforcesScreen = () => {
   const lastContest = getLastContest();
   const rankColor = getRankColor(cfData?.rank);
 
+  const chartWidth = Math.min(width - contentPadding * 2, 760);
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingHorizontal: contentPadding }]}> 
       {usernameModal}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { maxWidth: maxContentWidth, alignSelf: 'center' }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accent} />}
       >
         {/* Header Card */}
@@ -272,7 +274,7 @@ export const CodeforcesScreen = () => {
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Rating History</Text>
             <LineChart
               data={ratings}
-              width={screenWidth - 120}
+              width={chartWidth}
               height={180}
               curved
               areaChart
@@ -285,7 +287,7 @@ export const CodeforcesScreen = () => {
               thickness={2.5}
               initialSpacing={8}
               endSpacing={8}
-              spacing={(screenWidth - 136) / Math.max(ratings.length - 1, 1)}
+              spacing={(chartWidth - 56) / Math.max(ratings.length - 1, 1)}
               noOfSections={4}
               yAxisColor="transparent"
               xAxisColor="transparent"

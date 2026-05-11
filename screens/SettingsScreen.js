@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Dimensions, Linking, Modal, TextInput, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert, Linking, Modal, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsive } from '../utils/responsive';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../ThemeContext';
-
-const screenWidth = Dimensions.get("window").width;
 
 const PLATFORMS = [
   { key: 'leetcode', label: 'LeetCode', icon: 'code-slash', color: '#FFA116', storageKey: 'lcusername', enableKey: 'platform_leetcode' },
@@ -26,6 +25,7 @@ const REMINDER_OPTIONS = [
 
 export const SettingsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { width, contentPadding, maxContentWidth } = useResponsive();
   const { colors, mode, selectedMode, setMode } = useTheme();
   const [usernames, setUsernames] = useState({});
   const [enabledPlatforms, setEnabledPlatforms] = useState({});
@@ -164,7 +164,7 @@ export const SettingsScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + 10 }]}> 
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + 10, paddingHorizontal: contentPadding }]}> 
       {/* Username Input Modal */}
       <Modal visible={!!usernameModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -205,7 +205,7 @@ export const SettingsScreen = ({ navigation }) => {
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Settings</Text>
         <View style={{ width: 40 }} />
       </View>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { maxWidth: maxContentWidth, alignSelf: 'center' }]}>
         {/* Support Us */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>SUPPORT</Text>
         <TouchableOpacity
