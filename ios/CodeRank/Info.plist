@@ -27,7 +27,7 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.ratingTracker.ratingTracker</string>
+          <string>com.codeRank.codeRank</string>
         </array>
       </dict>
     </array>

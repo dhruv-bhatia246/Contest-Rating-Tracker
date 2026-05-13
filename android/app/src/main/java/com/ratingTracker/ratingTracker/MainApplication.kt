@@ -1,4 +1,4 @@
-package com.ratingTracker.ratingTracker
+package com.codeRank.codeRank
 
 import android.app.Application
 import android.content.res.Configuration
