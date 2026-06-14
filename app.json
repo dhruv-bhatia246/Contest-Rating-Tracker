@@ -41,6 +41,17 @@
       }
     },
     "owner": "dhruv_bhatia",
-    "jsEngine": "hermes"
+    "jsEngine": "hermes",
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 35
+          }
+        }
+      ]
+    ]
   }
 }
