@@ -29,7 +29,8 @@
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.codeRank.codeRank"
+      "package": "com.codeRank.codeRank",
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/logo.png"
