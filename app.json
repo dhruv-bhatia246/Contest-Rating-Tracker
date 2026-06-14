@@ -39,9 +39,6 @@
         "projectId": "ef1c3fe3-b880-4afa-be11-ba8b57f86fc9"
       }
     },
-    "cli": {
-      "appVersionSource": "local"
-    },
     "owner": "dhruv_bhatia",
     "jsEngine": "hermes"
   }
