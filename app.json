@@ -30,7 +30,7 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.codeRank.codeRank",
-      "versionCode": 2
+      "versionCode": 5
     },
     "web": {
       "favicon": "./assets/logo.png"
