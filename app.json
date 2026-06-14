@@ -42,6 +42,7 @@
     "cli": {
       "appVersionSource": "local"
     },
-    "owner": "dhruv_bhatia"
+    "owner": "dhruv_bhatia",
+    "jsEngine": "hermes"
   }
 }

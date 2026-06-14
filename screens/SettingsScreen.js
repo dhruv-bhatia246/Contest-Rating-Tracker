@@ -27,8 +27,8 @@ const REMINDER_OPTIONS = [
 export const SettingsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { colors, mode, selectedMode, setMode } = useTheme();
-  const [usernames, setUsernames] = useState({});
-  const [enabledPlatforms, setEnabledPlatforms] = useState({});
+  const [usernames, setUsernames] = useState({ leetcode: null, codeforces: null, codechef: null });
+  const [enabledPlatforms, setEnabledPlatforms] = useState({ leetcode: false, codeforces: false, codechef: false });
   const [reminderMinutes, setReminderMinutes] = useState('30');
   const [usernameModal, setUsernameModal] = useState(null); // platform object or null
   const [usernameInput, setUsernameInput] = useState('');
@@ -39,10 +39,10 @@ export const SettingsScreen = ({ navigation }) => {
   }, []);
 
   const loadSettings = async () => {
-    const names = {};
-    const enabled = {};
+    const names = { leetcode: null, codeforces: null, codechef: null };
+    const enabled = { leetcode: false, codeforces: false, codechef: false };
     for (const p of PLATFORMS) {
-      names[p.key] = await AsyncStorage.getItem(p.storageKey);
+      names[p.key] = (await AsyncStorage.getItem(p.storageKey)) || null;
       const val = await AsyncStorage.getItem(p.enableKey);
       enabled[p.key] = val !== 'false';
     }
@@ -350,32 +350,36 @@ export const SettingsScreen = ({ navigation }) => {
         </View>
 
         {/* Reset Usernames */}
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>USERNAMES</Text>
-        <View style={[styles.card, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}>
-          {PLATFORMS.filter(p => enabledPlatforms[p.key]).map((platform, index, arr) => (
-            <View key={platform.key}>
-              <TouchableOpacity
-                style={styles.resetRow}
-                onPress={() => resetUsername(platform)}
-                disabled={!usernames[platform.key]}
-              >
-                <View style={styles.resetLeft}>
-                  <Ionicons name="person-outline" size={18} color={colors.textSecondary} />
-                  <Text style={[styles.resetLabel, { color: colors.textSecondary }]}>{platform.label}</Text>
+{PLATFORMS.filter(p => enabledPlatforms[p.key] && usernames[p.key]).length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>USERNAMES</Text>
+            <View style={[styles.card, { backgroundColor: colors.card, ...Platform.select({ ios: { shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 8 }, android: { elevation: 3 } }) }]}> 
+              {PLATFORMS.filter(p => enabledPlatforms[p.key] && usernames[p.key]).map((platform, index, arr) => (
+                <View key={platform.key}>
+                  <TouchableOpacity
+                    style={styles.resetRow}
+                    onPress={() => resetUsername(platform)}
+                    disabled={!usernames[platform.key]}
+                  >
+                    <View style={styles.resetLeft}>
+                      <Ionicons name="person-outline" size={18} color={colors.textSecondary} />
+                      <Text style={[styles.resetLabel, { color: colors.textSecondary }]}>{platform.label}</Text>
+                    </View>
+                    <View style={styles.resetRight}>
+                      <Text style={[styles.resetValue, { color: colors.textSecondary }, !usernames[platform.key] && { color: colors.border }]}> 
+                        {usernames[platform.key] || '—'}
+                      </Text>
+                      {usernames[platform.key] && (
+                        <Ionicons name="close-circle" size={18} color="#ff5252" style={{ marginLeft: 8 }} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                  {index < arr.length - 1 && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
                 </View>
-                <View style={styles.resetRight}>
-                  <Text style={[styles.resetValue, { color: colors.textSecondary }, !usernames[platform.key] && { color: colors.border }]}>
-                    {usernames[platform.key] || '—'}
-                  </Text>
-                  {usernames[platform.key] && (
-                    <Ionicons name="close-circle" size={18} color="#ff5252" style={{ marginLeft: 8 }} />
-                  )}
-                </View>
-              </TouchableOpacity>
-              {index < arr.length - 1 && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
+              ))}
             </View>
-          ))}
-        </View>
+          </>
+        )}
 
         {/* Danger Zone */}
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>DATA</Text>

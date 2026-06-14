@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../ThemeContext';
 import { notifyRatingChange } from '../utils/notificationHelper';
 
@@ -27,6 +28,7 @@ const getRankColor = (rank) => {
 };
 
 export const CodeforcesScreen = () => {
+  const navigation = useNavigation();
   const { colors, accent } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -99,6 +101,20 @@ export const CodeforcesScreen = () => {
   useEffect(() => {
     if (username) { setLoading(true); fetchData(); }
   }, [username]);
+
+  // Check if username has been removed in settings
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', async () => {
+      const currentUsername = await AsyncStorage.getItem('cfusername');
+      if (currentUsername !== username) {
+        setUsername(currentUsername);
+        setCfData(null);
+        setHistory(null);
+        setCachedRating(null);
+      }
+    });
+    return unsubscribe;
+  }, [navigation, username]);
 
   const onRefresh = () => {
     setRefreshing(true);

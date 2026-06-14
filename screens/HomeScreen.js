@@ -294,10 +294,15 @@ export const HomeScreen = ({ navigation }) => {
       </Animated.View>
 
       {platformKeys.length === 0 ? (
-        <View style={[styles.emptyCard, { backgroundColor: colors.card }]}>
+        <TouchableOpacity 
+          style={[styles.emptyCard, { backgroundColor: colors.card }]}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('Main', { screen: 'Settings' })}
+        >
           <Ionicons name="person-outline" size={32} color={colors.textSecondary} />
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No platforms enabled yet</Text>
-        </View>
+          <Text style={[styles.tapText, { color: colors.accent }]}>Tap to add platforms</Text>
+        </TouchableOpacity>
       ) : (
         <Animated.View entering={FadeInDown.duration(400).delay(150)}>
           <FlatList
@@ -514,6 +519,7 @@ const styles = StyleSheet.create({
 
   emptyCard: { borderRadius: 16, padding: 32, alignItems: 'center', marginBottom: 12 },
   emptyText: { fontSize: 15, marginTop: 8 },
+  tapText: { fontSize: 13, marginTop: 6, fontWeight: '500' },
 
   contestCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 14, padding: 14, marginBottom: 10 },
   contestLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 },
